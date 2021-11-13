@@ -1,17 +1,18 @@
 plugins {
     id 'com.android.application'
     id 'kotlin-android'
+    id 'androidx.navigation.safeargs.kotlin'
 }
 
 android {
-    compileSdk 31
+    compileSdk buildConfig.compileSdk
 
     defaultConfig {
         applicationId "com.kshitijpatil.elementaryeditor"
-        minSdk 21
-        targetSdk 31
+        minSdk buildConfig.minSdk
+        targetSdk buildConfig.targetSdk
         versionCode 1
-        versionName "1.0"
+        versionName "0.1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -23,21 +24,64 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
-    kotlinOptions {
-        jvmTarget = '1.8'
+    buildFeatures {
+        viewBinding true
+    }
+    // workaround for compilation errors when using kotlinx-coroutines-test in androidTest
+    // ref: https://github.com/Kotlin/kotlinx.coroutines/issues/2023#issuecomment-858644393
+    packagingOptions {
+        // for JNA and JNA-platform
+        exclude "META-INF/AL2.0"
+        exclude "META-INF/LGPL2.1"
+        // for byte-buddy
+        exclude "META-INF/licenses/ASM"
+        pickFirst "win32-x86-64/attach_hotspot_windows.dll"
+        pickFirst "win32-x86/attach_hotspot_windows.dll"
+    }
+    testOptions {
+        unitTests {
+            includeAndroidResources = true
+        }
     }
 }
 
 dependencies {
+    implementation libs.androidx.coreKtx
+    implementation libs.androidx.appcompat
+    implementation libs.androidx.recyclerview
+    implementation libs.androidx.swiperefreshlayout
+    implementation libs.androidx.constraintlayout
+    implementation libs.androidx.cardview
+    implementation libs.android.material
+    implementation libs.androidx.fragment.fragmentKtx
+    implementation libs.androidx.lifecycle.lifecycleRuntimeKtx
+    implementation libs.androidx.navigation.navigationFragmentKtx
+    implementation libs.androidx.navigation.navigationUiKtx
+    implementation libs.androidx.work.workKtx
 
-    implementation 'androidx.core:core-ktx:1.6.0'
-    implementation 'androidx.appcompat:appcompat:1.3.1'
-    implementation 'com.google.android.material:material:1.4.0'
-    implementation 'androidx.constraintlayout:constraintlayout:2.1.1'
-    testImplementation 'junit:junit:4.+'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.3'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.4.0'
+    // third-party
+    implementation libs.timber
+    implementation libs.phonemoji
+
+    testImplementation libs.junit
+    testImplementation libs.truth
+    testImplementation libs.robolectric
+    testImplementation libs.androidx.archCoreKtx
+    testImplementation libs.androidx.test.rules
+    testImplementation libs.androidx.test.junit
+    testImplementation libs.kotlin.coroutines.test
+
+    androidTestImplementation libs.espresso.contrib
+    androidTestImplementation libs.espresso.core
+    androidTestImplementation libs.androidx.test.junit
+    androidTestImplementation libs.androidx.test.rules
+    androidTestImplementation libs.androidx.test.runner
+    androidTestImplementation libs.androidx.archCoreKtx
+    androidTestImplementation libs.androidx.fragment.fragmentTesting
+    androidTestImplementation libs.androidx.work.testing
+    androidTestImplementation libs.truth
+    androidTestImplementation libs.kotlin.coroutines.test
 }
