@@ -1,3 +1,6 @@
+import app.elementaryeditor.buildsrc.DependencyUpdates
+import app.elementaryeditor.buildsrc.ReleaseType
+
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 buildscript {
     ext.buildConfig = [
@@ -40,4 +43,20 @@ subprojects {
 
 task clean(type: Delete) {
     delete rootProject.buildDir
+}
+
+/**
+ * Update dependencyUpdates task to reject versions which are more 'unstable' than our
+ * current version.
+ */
+tasks.named("dependencyUpdates").configure {
+    rejectVersionIf {
+        def current = DependencyUpdates.versionToRelease(it.currentVersion)
+        // If we're using a SNAPSHOT, ignore since we must be doing so for a reason.
+        if (current == ReleaseType.SNAPSHOT) return true
+
+        // Otherwise we reject if the candidate is more 'unstable' than our version
+        def candidate = DependencyUpdates.versionToRelease(it.candidate.version)
+        return candidate.isLessStableThan(current)
+    }
 }
