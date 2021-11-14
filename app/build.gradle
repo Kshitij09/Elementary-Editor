@@ -65,6 +65,7 @@ dependencies {
     // third-party
     implementation libs.timber
     implementation libs.phonemoji
+    implementation libs.glide
 
     testImplementation libs.junit
     testImplementation libs.truth
