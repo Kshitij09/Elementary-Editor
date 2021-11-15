@@ -13,6 +13,7 @@ import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.animation.RotateAnimation
 import android.widget.ImageView
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.ActivityResultRegistry
@@ -27,10 +28,9 @@ import com.kshitijpatil.elementaryeditor.databinding.FragmentRotateImageBinding
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import timber.log.Timber
+import kotlin.math.absoluteValue
 
 class ImageSaver(
     private val registry: ActivityResultRegistry,
@@ -64,7 +64,7 @@ class ImageSaver(
 
             resolver.insert(photosCollection, imageDetails)?.let { imageUri ->
                 resolver.openOutputStream(imageUri, "w").use {
-                    data.compress(Bitmap.CompressFormat.PNG, 100, it)
+                    data.compress(Bitmap.CompressFormat.JPEG, 100, it)
                 }
 
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -123,12 +123,11 @@ class RotateImageFragment : Fragment() {
         }.root
     }
 
-    private var currentBitmap: Bitmap? = null
-    private val mutex = Mutex()
     private val options = RequestOptions()
         .sizeMultiplier(0.25f)
         .fitCenter()
     private lateinit var imageSaver: ImageSaver
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         imageSaver = ImageSaver(
@@ -138,40 +137,70 @@ class RotateImageFragment : Fragment() {
         lifecycle.addObserver(imageSaver)
     }
 
+    private var currentRotation = 0f
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        if (currentBitmap == null) {
-            loadDefaultBitmap()
-        }
+        loadDefaultBitmap()
         binding.btnLeft.setOnClickListener {
-            val source = currentBitmap
-            if (source != null) {
-                rotateBitmapJob?.cancel()
-                rotateBitmapJob = rotateImageToLeft(source)
-            } else {
-                Timber.d("Current bitmap is not initialized, skipping rotate")
-            }
-
+            currentRotation = binding.imgPreview.animatedRotate(currentRotation, false)
         }
+
         binding.btnRight.setOnClickListener {
-            val source = currentBitmap
-            if (source != null) {
-                rotateBitmapJob?.cancel()
-                rotateBitmapJob = rotateImageToRight(source)
-            } else {
-                Timber.d("Current bitmap is not initialized, skipping rotate")
-            }
+            currentRotation = binding.imgPreview.animatedRotate(currentRotation, true)
         }
 
-        binding.btnSave.setOnClickListener { currentBitmap?.let { imageSaver.saveImage(it) } }
+        binding.btnSave.setOnClickListener {
+            //val bitmapDrawable = binding.imgPreview.drawable as BitmapDrawable
+            val bitmapTarget = Glide.with(requireContext())
+                .asBitmap()
+                //.apply(options)
+                .load(R.drawable.bird_sample_image5x4)
+                .submit()
+            viewLifecycleScope.launch(Dispatchers.Default) {
+                try {
+                    Timber.d("Rotating bitmap by $currentRotation degrees")
+                    var processed = bitmapTarget.get()
+                    processed = processed.rotateBy(currentRotation)
+                    imageSaver.saveImage(processed)
+                } catch (throwable: Throwable) {
+                    Timber.e(throwable, "Failed loading bitmap")
+                }
+            }
+        }
+    }
+
+    /**
+     *
+     * 0 -- 90 -- 180 -- 270 -- 360 -- 0
+     */
+    private fun ImageView.animatedRotate(currentRotation: Float, clockwise: Boolean = true): Float {
+        val fromRotation = if (currentRotation.absoluteValue == 360f) 0f else currentRotation
+        val rotateDegrees = if (clockwise) 90f else -90f
+        val toRotation = (fromRotation + rotateDegrees) % 450f
+        Timber.d("Rotating from $fromRotation to $toRotation")
+        val rotateAnimation = RotateAnimation(
+            fromRotation,
+            toRotation,
+            width / 2f,
+            height / 2f
+        ).apply {
+            duration = 400
+            fillAfter = true
+        }
+        startAnimation(rotateAnimation)
+        return toRotation
+    }
+
+    private fun getPreviewBitmap(): Bitmap {
+        TODO("Not yet implemented")
     }
 
     private fun loadDefaultBitmap() {
-        val bitmapTarget = Glide.with(requireContext())
+        /*val bitmapTarget = Glide.with(requireContext())
             .asBitmap()
             .apply(options)
             .load(R.drawable.bird_sample_image5x4)
-            .submit()
         viewLifecycleScope.launch(Dispatchers.Default) {
             try {
                 val loadedBitmap = bitmapTarget.get()
@@ -180,7 +209,11 @@ class RotateImageFragment : Fragment() {
             } catch (throwable: Throwable) {
                 Timber.e(throwable, "Failed loading bitmap")
             }
-        }
+        }*/
+        Glide.with(requireContext())
+            .load(R.drawable.bird_sample_image5x4)
+            .thumbnail(0.1f)
+            .into(binding.imgPreview)
     }
 
     private val Fragment.viewLifecycleScope get() = viewLifecycleOwner.lifecycleScope
@@ -224,7 +257,7 @@ class RotateImageFragment : Fragment() {
         val updated = withContext(Dispatchers.Default) {
             source.rotateBy(degrees)
         }
-        mutex.withLock { currentBitmap = updated }
+        //mutex.withLock { currentBitmap = updated }
         binding.imgPreview.setImageBitmap(updated)
     }
 
