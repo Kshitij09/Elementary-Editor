@@ -1,14 +1,25 @@
 package com.kshitijpatil.elementaryeditor
 
+import android.Manifest
+import android.content.ContentResolver
+import android.content.ContentValues
 import android.graphics.Bitmap
 import android.graphics.Matrix
 import android.graphics.Point
+import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.ActivityResultRegistry
+import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.DefaultLifecycleObserver
+import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
@@ -21,6 +32,75 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import timber.log.Timber
 
+class ImageSaver(
+    private val registry: ActivityResultRegistry,
+    private val resolver: ContentResolver
+) : DefaultLifecycleObserver {
+    companion object {
+        const val REQUEST_STORAGE_PERMISSION_KEY =
+            "com.kshitijpatil.elementaryeditor.REQUEST_STORAGE_PERMISSION_KEY"
+    }
+
+    lateinit var requestPermissionLauncher: ActivityResultLauncher<String>
+    private var targetBitmap: Bitmap? = null
+
+    override fun onCreate(owner: LifecycleOwner) {
+        requestPermissionLauncher =
+            registry.register(REQUEST_STORAGE_PERMISSION_KEY, owner, RequestPermission()) {
+                saveToImageCollection()
+            }
+    }
+
+    private fun saveToImageCollection() {
+        val data = targetBitmap
+        if (data != null) {
+            val photosCollection = getPhotosCollection()
+            val imageDetails = ContentValues().apply {
+                put(MediaStore.Images.Media.DISPLAY_NAME, "test-rotation-image.png")
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    put(MediaStore.Images.Media.IS_PENDING, 1)
+                }
+            }
+
+            resolver.insert(photosCollection, imageDetails)?.let { imageUri ->
+                resolver.openOutputStream(imageUri, "w").use {
+                    data.compress(Bitmap.CompressFormat.PNG, 100, it)
+                }
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    imageDetails.clear()
+                    imageDetails.put(MediaStore.Images.Media.IS_PENDING, 0)
+                    resolver.update(imageUri, imageDetails, null, null)
+                    targetBitmap = null
+                }
+            }
+        } else {
+            Timber.e("Incorrect save-bitmap call, nothing to save")
+        }
+    }
+
+    fun saveImage(bitmap: Bitmap) {
+        targetBitmap = bitmap
+        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
+            requestPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        } else {
+            saveToImageCollection()
+        }
+    }
+
+    private fun getPhotosCollection(): Uri {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+        } else {
+            MediaStore.Images.Media.EXTERNAL_CONTENT_URI
+        }
+    }
+
+    override fun onDestroy(owner: LifecycleOwner) {
+        // don't leak any references
+        targetBitmap = null
+    }
+}
 
 class RotateImageFragment : Fragment() {
     private var _binding: FragmentRotateImageBinding? = null
@@ -48,6 +128,15 @@ class RotateImageFragment : Fragment() {
     private val options = RequestOptions()
         .sizeMultiplier(0.25f)
         .fitCenter()
+    private lateinit var imageSaver: ImageSaver
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        imageSaver = ImageSaver(
+            registry = requireActivity().activityResultRegistry,
+            resolver = requireContext().contentResolver
+        )
+        lifecycle.addObserver(imageSaver)
+    }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -73,6 +162,8 @@ class RotateImageFragment : Fragment() {
                 Timber.d("Current bitmap is not initialized, skipping rotate")
             }
         }
+
+        binding.btnSave.setOnClickListener { currentBitmap?.let { imageSaver.saveImage(it) } }
     }
 
     private fun loadDefaultBitmap() {
