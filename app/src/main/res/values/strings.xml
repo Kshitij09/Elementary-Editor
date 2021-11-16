@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">Elementary Editor</string>
+    <string name="info_tap_to_open_gallery">Tap anywhere to open Gallery</string>
 </resources>
