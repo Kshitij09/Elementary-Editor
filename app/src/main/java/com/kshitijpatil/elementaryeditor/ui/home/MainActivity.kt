@@ -5,10 +5,11 @@ import android.os.Bundle
 import android.widget.FrameLayout
 import android.widget.ImageView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.view.isVisible
-import com.kshitijpatil.elementaryeditor.EditActivity
 import com.kshitijpatil.elementaryeditor.R
 import com.kshitijpatil.elementaryeditor.imagepicker.*
+import com.kshitijpatil.elementaryeditor.ui.edit.EditActivity
 import com.kshitijpatil.elementaryeditor.util.openActivity
 import timber.log.Timber
 
@@ -23,6 +24,7 @@ class MainActivity : AppCompatActivity(), OnImageUriCallback {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         tempFileUriProvider = DefaultTempFileUriProvider(applicationContext)
         galleryImageUriProvider = GalleryImageUriProvider(
             appContext = applicationContext,
