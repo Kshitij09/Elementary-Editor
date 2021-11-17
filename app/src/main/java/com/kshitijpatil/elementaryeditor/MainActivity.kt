@@ -2,6 +2,7 @@ package com.kshitijpatil.elementaryeditor
 
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.widget.FrameLayout
@@ -10,6 +11,7 @@ import androidx.activity.result.contract.ActivityResultContracts.GetContent
 import androidx.activity.result.contract.ActivityResultContracts.TakePicture
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
+import androidx.core.view.isVisible
 import timber.log.Timber
 import java.io.File
 
@@ -31,6 +33,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private var latestTmpUri: Uri? = null
+    private val hasCameraFeature by lazy {
+        applicationContext.packageManager.hasSystemFeature(
+            PackageManager.FEATURE_CAMERA_FRONT
+        )
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -38,8 +45,9 @@ class MainActivity : AppCompatActivity() {
         findViewById<FrameLayout>(R.id.root_container).setOnClickListener {
             selectImageLauncher.launch("image/*")
         }
-        findViewById<ImageView>(R.id.iv_launch_camera).setOnClickListener {
-            takeImage()
+        findViewById<ImageView>(R.id.iv_launch_camera).run {
+            isVisible = hasCameraFeature
+            setOnClickListener { takeImage() }
         }
     }
 
