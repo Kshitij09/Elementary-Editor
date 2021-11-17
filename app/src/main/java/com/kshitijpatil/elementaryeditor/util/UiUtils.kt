@@ -1,5 +1,8 @@
 package com.kshitijpatil.elementaryeditor.util
 
+import android.content.Context
+import android.content.Intent
+import android.os.Bundle
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -20,4 +23,10 @@ inline fun Fragment.launchAndRepeatWithViewLifecycle(
             block()
         }
     }
+}
+
+inline fun <reified T> Context.openActivity(extras: Bundle.() -> Unit = {}) {
+    val intent = Intent(this, T::class.java)
+    intent.putExtras(Bundle().apply(extras))
+    startActivity(intent)
 }
