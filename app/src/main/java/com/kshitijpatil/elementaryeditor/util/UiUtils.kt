@@ -30,3 +30,5 @@ inline fun <reified T> Context.openActivity(extras: Bundle.() -> Unit = {}) {
     intent.putExtras(Bundle().apply(extras))
     startActivity(intent)
 }
+
+val Fragment.viewLifecycleScope get() = viewLifecycleOwner.lifecycleScope

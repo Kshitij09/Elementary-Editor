@@ -21,10 +21,10 @@ import androidx.activity.result.contract.ActivityResultContracts.RequestPermissi
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
-import androidx.lifecycle.lifecycleScope
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.RequestOptions
 import com.kshitijpatil.elementaryeditor.databinding.FragmentRotateImageBinding
+import com.kshitijpatil.elementaryeditor.util.viewLifecycleScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -215,8 +215,6 @@ class RotateImageFragment : Fragment() {
             .thumbnail(0.1f)
             .into(binding.imgPreview)
     }
-
-    private val Fragment.viewLifecycleScope get() = viewLifecycleOwner.lifecycleScope
 
     private suspend fun setPreviewBitmap(bitmap: Bitmap) {
         withContext(Dispatchers.Main.immediate) {
