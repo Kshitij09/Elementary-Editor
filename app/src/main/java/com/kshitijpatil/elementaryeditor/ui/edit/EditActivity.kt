@@ -1,11 +1,16 @@
-package com.kshitijpatil.elementaryeditor
+package com.kshitijpatil.elementaryeditor.ui.edit
 
 import android.os.Bundle
+import android.widget.Toast
+import androidx.activity.viewModels
 import androidx.annotation.IdRes
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.net.toUri
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavOptions
 import androidx.navigation.findNavController
+import com.kshitijpatil.elementaryeditor.R
 import com.kshitijpatil.elementaryeditor.databinding.ActivityEditBinding
 import com.kshitijpatil.elementaryeditor.ui.home.MainActivity
 import timber.log.Timber
@@ -15,16 +20,30 @@ class EditActivity : AppCompatActivity() {
     private val navController by lazy {
         findNavController(R.id.edit_action_fragment_container)
     }
+    private val editViewModel: EditViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val imageUri = intent.getStringExtra(MainActivity.IMAGE_URI_KEY_EXTRA)
-        Timber.d("Performing edit on $imageUri")
+        Timber.d("Received image-uri: $imageUri")
+        if (imageUri == null) warnAndExit()
+        else editViewModel.setTargetImageUri(imageUri.toUri())
         binding = ActivityEditBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         binding.cgEditOptions.setOnCheckedChangeListener { _, checkedId ->
             onNavDestinationSelected(checkedId)
         }
+    }
+
+    private fun warnAndExit() {
+        Timber.e("IllegalState: imageUri was null")
+        Toast.makeText(
+            this,
+            "Please share an Image accessible to Elementary Editor",
+            Toast.LENGTH_SHORT
+        ).show()
+        finish()
     }
 
     private fun onNavDestinationSelected(@IdRes checkedChipId: Int) {

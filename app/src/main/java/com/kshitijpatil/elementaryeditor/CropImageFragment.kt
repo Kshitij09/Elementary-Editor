@@ -1,29 +1,31 @@
 package com.kshitijpatil.elementaryeditor
 
 import android.graphics.Bitmap
-import android.graphics.Matrix
-import android.graphics.Rect
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.view.ViewTreeObserver
-import android.widget.Button
-import android.widget.ImageView
+import android.widget.Toast
+import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.lifecycleScope
+import androidx.fragment.app.activityViewModels
 import com.bumptech.glide.Glide
+import com.kshitijpatil.elementaryeditor.databinding.FragmentCropImageBinding
+import com.kshitijpatil.elementaryeditor.ui.edit.EditViewModel
+import com.kshitijpatil.elementaryeditor.util.getBitmapPositionInsideImageView
+import com.kshitijpatil.elementaryeditor.util.launchAndRepeatWithViewLifecycle
+import com.kshitijpatil.elementaryeditor.util.viewLifecycleScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import timber.log.Timber
-import kotlin.math.roundToInt
 
 
 class CropImageFragment : Fragment(R.layout.fragment_crop_image) {
-    private lateinit var ivPreview: ImageView
-    private lateinit var cropOverlay: CropOverlay
-    private lateinit var btnSave: Button
     private lateinit var imageSaver: ImageSaver
+    private val editViewModel: EditViewModel by activityViewModels()
+    private var _binding: FragmentCropImageBinding? = null
+    private val binding: FragmentCropImageBinding get() = _binding!!
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,32 +41,25 @@ class CropImageFragment : Fragment(R.layout.fragment_crop_image) {
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        val view = super.onCreateView(inflater, container, savedInstanceState)
-        view?.run {
-            ivPreview = findViewById(R.id.img_preview)
-            cropOverlay = findViewById(R.id.crop_overlay)
-            btnSave = findViewById(R.id.btn_save)
-            ivPreview.viewTreeObserver.addOnGlobalLayoutListener(object :
-                ViewTreeObserver.OnGlobalLayoutListener {
-                override fun onGlobalLayout() {
-                    ivPreview.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                    getBitmapPositionInsideImageView(ivPreview)?.let {
-                        cropOverlay.setImageBounds(it)
-                    }
-                }
-            })
-            btnSave.setOnClickListener {
+        _binding = FragmentCropImageBinding.inflate(inflater, container, false)
+        binding.imgPreview.viewTreeObserver.addOnGlobalLayoutListener {
+            getBitmapPositionInsideImageView(binding.imgPreview)?.let {
+                binding.cropOverlay.setImageBounds(it)
+            }
+        }
+        binding.btnSave.setOnClickListener {
+            editViewModel.targetImageUri.value?.let { imageUri ->
                 val bitmapTarget = Glide.with(requireContext())
                     .asBitmap()
-                    //.apply(options)
-                    .load(R.drawable.bird_sample_image5x4)
+                    .load(imageUri)
                     .submit()
-                viewLifecycleOwner.lifecycleScope.launch(Dispatchers.Default) {
+                binding.btnSave.isEnabled = false
+                viewLifecycleScope.launch(Dispatchers.Default) {
                     try {
-                        cropOverlay.getCropBbox()?.let { cropBounds ->
+                        binding.cropOverlay.getCropBbox()?.let { cropBounds ->
                             var processed = bitmapTarget.get()
-                            val viewWidth = cropOverlay.initialBounds!!.width()
-                            val viewHeight = cropOverlay.initialBounds!!.height()
+                            val viewWidth = binding.cropOverlay.initialBounds!!.width()
+                            val viewHeight = binding.cropOverlay.initialBounds!!.height()
                             val scaleX = processed.width / viewWidth.toFloat()
                             val scaleY = processed.height / viewHeight.toFloat()
                             val topX = cropBounds.startX * scaleX
@@ -83,46 +78,41 @@ class CropImageFragment : Fragment(R.layout.fragment_crop_image) {
                     } catch (throwable: Throwable) {
                         Timber.e(throwable, "Failed loading bitmap")
                     }
+                }.invokeOnCompletion {
+                    if (it != null) {
+                        Toast.makeText(requireContext(), "Saved!", Toast.LENGTH_SHORT).show()
+                    }
+                    viewLifecycleScope.launch(Dispatchers.Main) {
+                        binding.btnSave.isEnabled = true
+                    }
                 }
             }
         }
-        return view
+        return binding.root
     }
 
-    /**
-     * Returns the bitmap position inside an imageView.
-     * @param imageView source ImageView
-     * @return [Rect] with required Bitmap bounds
-     */
-    fun getBitmapPositionInsideImageView(imageView: ImageView?): Rect? {
-        if (imageView == null || imageView.drawable == null) return null
+    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
+        super.onViewCreated(view, savedInstanceState)
+        launchAndRepeatWithViewLifecycle {
+            launch { observeTargetImageUri() }
+        }
+    }
 
-        // Get image dimensions
-        // Get image matrix values and place them in an array
-        val f = FloatArray(9)
-        imageView.imageMatrix.getValues(f)
+    override fun onDestroyView() {
+        _binding = null
+        super.onDestroyView()
+    }
 
-        // Extract the scale values using the constants (if aspect ratio maintained, scaleX == scaleY)
-        val scaleX = f[Matrix.MSCALE_X]
-        val scaleY = f[Matrix.MSCALE_Y]
-
-        // Get the drawable (could also get the bitmap behind the drawable and getWidth/getHeight)
-        val d = imageView.drawable
-        val origW = d.intrinsicWidth
-        val origH = d.intrinsicHeight
-
-        // Calculate the actual dimensions
-        val actW = (origW * scaleX).roundToInt()
-        val actH = (origH * scaleY).roundToInt()
-
-        // Get image position
-        // We assume that the image is centered into ImageView
-        val imgViewW = imageView.width
-        val imgViewH = imageView.height
-        val top = (imgViewH - actH) / 2
-        val left = (imgViewW - actW) / 2
-        val right = left + actW
-        val bottom = top + actH
-        return Rect(left, top, right, bottom)
+    private suspend fun observeTargetImageUri() {
+        editViewModel.targetImageUri.collect { uri ->
+            if (uri != null) {
+                Glide.with(requireContext())
+                    .load(uri)
+                    .thumbnail(0.1f)
+                    .into(binding.imgPreview)
+            }
+            binding.imgPreview.isVisible = uri != null
+            binding.cropOverlay.isVisible = uri != null
+        }
     }
 }
