@@ -8,8 +8,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.view.isVisible
 import com.kshitijpatil.elementaryeditor.R
-import com.kshitijpatil.elementaryeditor.imagepicker.*
 import com.kshitijpatil.elementaryeditor.ui.edit.EditActivity
+import com.kshitijpatil.elementaryeditor.ui.imagepicker.*
 import com.kshitijpatil.elementaryeditor.util.openActivity
 import timber.log.Timber
 

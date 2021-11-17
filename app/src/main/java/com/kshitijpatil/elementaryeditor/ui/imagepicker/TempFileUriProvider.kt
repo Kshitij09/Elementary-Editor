@@ -1,4 +1,4 @@
-package com.kshitijpatil.elementaryeditor.imagepicker
+package com.kshitijpatil.elementaryeditor.ui.imagepicker
 
 import android.content.Context
 import android.net.Uri

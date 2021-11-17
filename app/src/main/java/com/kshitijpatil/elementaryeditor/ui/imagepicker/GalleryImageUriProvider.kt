@@ -1,4 +1,4 @@
-package com.kshitijpatil.elementaryeditor.imagepicker
+package com.kshitijpatil.elementaryeditor.ui.imagepicker
 
 import android.Manifest
 import android.content.Context
@@ -52,8 +52,8 @@ class GalleryImageUriProvider(
 
     companion object {
         const val SELECT_IMAGE_LAUNCH_KEY =
-            "com.kshitijpatil.elementaryeditor.imagepicker.SELECT_IMAGE_LAUNCH_KEY"
+            "com.kshitijpatil.elementaryeditor.ui.imagepicker.SELECT_IMAGE_LAUNCH_KEY"
         const val REQUEST_READ_EXTERNAL_STORAGE_LAUNCH_KEY =
-            "com.kshitijpatil.elementaryeditor.imagepicker.REQUEST_READ_EXTERNAL_STORAGE_LAUNCH_KEY"
+            "com.kshitijpatil.elementaryeditor.ui.imagepicker.REQUEST_READ_EXTERNAL_STORAGE_LAUNCH_KEY"
     }
 }

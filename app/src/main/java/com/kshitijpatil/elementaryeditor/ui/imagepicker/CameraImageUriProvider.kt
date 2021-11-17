@@ -1,4 +1,4 @@
-package com.kshitijpatil.elementaryeditor.imagepicker
+package com.kshitijpatil.elementaryeditor.ui.imagepicker
 
 import android.content.Context
 import android.content.pm.PackageManager
@@ -47,6 +47,6 @@ open class CameraImageUriProvider(
 
     companion object {
         const val TAKE_PICTURE_LAUNCH_KEY =
-            "com.kshitijpatil.elementaryeditor.imagepicker.TAKE_PICTURE_LAUNCH_KEY"
+            "com.kshitijpatil.elementaryeditor.ui.imagepicker.TAKE_PICTURE_LAUNCH_KEY"
     }
 }
