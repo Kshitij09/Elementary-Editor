@@ -41,21 +41,19 @@ class CropOverlay @JvmOverloads constructor(
         invalidate()
     }
 
-    data class Bbox(
-        val startX: Int,
-        val startY: Int,
-        val width: Int,
-        val height: Int
-    )
-
-    fun getCropBbox(): Bbox? {
+    /**
+     * @return [IntArray] crop region coordinates in
+     *  the (offsetX, offsetY, width, height) order. If the [initialBounds]
+     *  or [imageBounds] are not initialized, this method returns null.
+     */
+    fun getCropBounds(): IntArray? {
         val initial = initialBounds ?: return null
         val altered = imageBounds ?: return null
         val offsetX = altered.left - initial.left
         val offsetY = altered.top - initial.top
         val width = altered.right - altered.left
         val height = altered.bottom - altered.top
-        return Bbox(offsetX, offsetY, width, height)
+        return intArrayOf(offsetX, offsetY, width, height)
     }
 
     /** Allows [onTouchEvent] to consume events offset by this value from the [imageBounds] */

@@ -20,7 +20,9 @@ class EditActivity : AppCompatActivity() {
     private val navController by lazy {
         findNavController(R.id.edit_action_fragment_container)
     }
-    private val editViewModel: EditViewModel by viewModels()
+    private val editViewModel: EditViewModel by viewModels {
+        EditViewModelFactory(applicationContext)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

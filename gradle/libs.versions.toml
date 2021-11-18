@@ -54,6 +54,7 @@ androidx-fragment-fragmentKtx = { module = "androidx.fragment:fragment-ktx", ver
 androidx-fragment-fragmentTesting = { module = "androidx.fragment:fragment-testing", version.ref = "androidx-fragment" }
 
 androidx-lifecycle-lifecycleRuntimeKtx = { module = "androidx.lifecycle:lifecycle-runtime-ktx", version.ref = "androidx-lifecycle" }
+androidx-lifecycle-lifecycleLivedataKtx = { module = "androidx.lifecycle:lifecycle-livedata-ktx", version.ref = "androidx-lifecycle" }
 
 androidx-navigation-navigationFragmentKtx = { module = "androidx.navigation:navigation-fragment-ktx", version.ref = "androidx-navigation" }
 androidx-navigation-navigationUiKtx = { module = "androidx.navigation:navigation-ui-ktx", version.ref = "androidx-navigation" }

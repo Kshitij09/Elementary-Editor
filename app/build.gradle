@@ -58,6 +58,7 @@ dependencies {
     implementation libs.android.material
     implementation libs.androidx.fragment.fragmentKtx
     implementation libs.androidx.lifecycle.lifecycleRuntimeKtx
+    implementation libs.androidx.lifecycle.lifecycleLivedataKtx
     implementation libs.androidx.navigation.navigationFragmentKtx
     implementation libs.androidx.navigation.navigationUiKtx
     implementation libs.androidx.work.workKtx

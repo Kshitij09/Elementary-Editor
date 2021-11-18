@@ -3,4 +3,8 @@
     <string name="info_tap_to_open_gallery">Tap anywhere to open Gallery</string>
     <string name="label_crop">Crop</string>
     <string name="label_rotate">Rotate</string>
+    <string name="label_cancel_processing">Cancel Processing</string>
+    <string name="notification_title_crop_image">Cropping Image</string>
+    <string name="notification_channel_id">edits</string>
+    <string name="notification_channel_name">Edit Operations</string>
 </resources>
