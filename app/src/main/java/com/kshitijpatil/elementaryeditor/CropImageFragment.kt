@@ -16,6 +16,9 @@ import com.kshitijpatil.elementaryeditor.ui.edit.EditViewModel
 import com.kshitijpatil.elementaryeditor.ui.edit.EditViewModelFactory
 import com.kshitijpatil.elementaryeditor.util.getBitmapPositionInsideImageView
 import com.kshitijpatil.elementaryeditor.util.launchAndRepeatWithViewLifecycle
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -66,12 +69,6 @@ class CropImageFragment : Fragment(R.layout.fragment_crop_image) {
                         observeWorkForCompletion(it)
                     }
                 }
-                /*if (it != null) {
-                    Toast.makeText(requireContext(), "Saved!", Toast.LENGTH_SHORT).show()
-                }
-                viewLifecycleScope.launch(Dispatchers.Main) {
-                    binding.btnSave.isEnabled = true
-                }*/
             }
         }
         return binding.root
@@ -112,7 +109,14 @@ class CropImageFragment : Fragment(R.layout.fragment_crop_image) {
         super.onViewCreated(view, savedInstanceState)
         launchAndRepeatWithViewLifecycle {
             launch { observeTargetImageUri() }
+            launch { observeCropBoundsModified() }
         }
+    }
+
+    private suspend fun observeCropBoundsModified() {
+        binding.cropOverlay
+            .cropBoundsModifiedFlow()
+            .collect(editViewModel::setCropBoundsModified)
     }
 
     override fun onDestroyView() {
@@ -130,6 +134,16 @@ class CropImageFragment : Fragment(R.layout.fragment_crop_image) {
             }
             binding.imgPreview.isVisible = uri != null
             binding.cropOverlay.isVisible = uri != null
+        }
+    }
+
+    private fun CropOverlay.cropBoundsModifiedFlow(): Flow<Boolean> {
+        return callbackFlow {
+            val callback = CropOverlay.OnCropBoundsModifiedListener {
+                trySend(it)
+            }
+            onCropBoundsModifiedListener = callback
+            awaitClose { onCropBoundsModifiedListener = null }
         }
     }
 }

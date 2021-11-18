@@ -32,23 +32,33 @@ class CropOverlay @JvmOverloads constructor(
         strokeWidth = 4f
     }
     var initialBounds: Rect? = null
-    private var imageBounds: Rect? = null
+    private var currentCropBounds: Rect? = null
+    var onCropBoundsModifiedListener: OnCropBoundsModifiedListener? = null
 
+    fun interface OnCropBoundsModifiedListener {
+        fun onBoundsChanged(modified: Boolean)
+    }
+
+    /**
+     * Set image bounds once the bitmap is rendered as per the
+     * [ImageView.ScaleType][android.widget.ImageView.ScaleType]
+     * for [CropOverlay] to start with.
+     */
     fun setImageBounds(rect: Rect) {
-        // note: issues might cause due to pass by reference
+        // note: creating new instance to avoid pass-by-reference issues
         initialBounds = Rect(rect.left, rect.top, rect.right, rect.bottom)
-        imageBounds = Rect(rect.left, rect.top, rect.right, rect.bottom)
+        currentCropBounds = Rect(rect.left, rect.top, rect.right, rect.bottom)
         invalidate()
     }
 
     /**
      * @return [IntArray] crop region coordinates in
      *  the (offsetX, offsetY, width, height) order. If the [initialBounds]
-     *  or [imageBounds] are not initialized, this method returns null.
+     *  or [currentCropBounds] are not initialized, the method will return null.
      */
     fun getCropBounds(): IntArray? {
         val initial = initialBounds ?: return null
-        val altered = imageBounds ?: return null
+        val altered = currentCropBounds ?: return null
         val offsetX = altered.left - initial.left
         val offsetY = altered.top - initial.top
         val width = altered.right - altered.left
@@ -56,13 +66,13 @@ class CropOverlay @JvmOverloads constructor(
         return intArrayOf(offsetX, offsetY, width, height)
     }
 
-    /** Allows [onTouchEvent] to consume events offset by this value from the [imageBounds] */
+    /** Allows [onTouchEvent] to consume events offset by this value from the [currentCropBounds] */
     private val precisionOffset = 100f
     private var dragAction: DragAction? = null
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        imageBounds?.let {
+        currentCropBounds?.let {
             canvas.drawRect(it, paint)
         }
     }
@@ -99,7 +109,7 @@ class CropOverlay @JvmOverloads constructor(
     }
 
     private fun updateCropBounds(dragAction: DragAction) {
-        val bounds = imageBounds ?: return
+        val bounds = currentCropBounds ?: return
         val viewBounds = initialBounds ?: return
         val updateX = dragAction.lastTouchPosition.x.toInt().coerceIn(
             viewBounds.left, viewBounds.right
@@ -121,12 +131,19 @@ class CropOverlay @JvmOverloads constructor(
                 bounds.set(bounds.left, bounds.top, bounds.right, updateY)
             }
         }
-        imageBounds = bounds
+        currentCropBounds = bounds
         invalidate()
+        updateCropBoundsModifiedState()
+    }
+
+    private fun updateCropBoundsModifiedState() {
+        onCropBoundsModifiedListener?.onBoundsChanged(
+            initialBounds != currentCropBounds
+        )
     }
 
     private fun getNearestEdge(event: MotionEvent): Edge? {
-        val bounds = imageBounds ?: return null
+        val bounds = currentCropBounds ?: return null
         val activeEdge = when {
             isClose(event.x, bounds.left.toFloat(), precisionOffset) -> Edge.LEFT
             isClose(event.y, bounds.top.toFloat(), precisionOffset) -> Edge.TOP

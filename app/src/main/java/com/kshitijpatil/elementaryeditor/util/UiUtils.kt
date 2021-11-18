@@ -3,6 +3,7 @@ package com.kshitijpatil.elementaryeditor.util
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import androidx.appcompat.app.AppCompatActivity
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
@@ -20,6 +21,17 @@ inline fun Fragment.launchAndRepeatWithViewLifecycle(
 ) {
     viewLifecycleOwner.lifecycleScope.launch {
         viewLifecycleOwner.lifecycle.repeatOnLifecycle(minActiveState) {
+            block()
+        }
+    }
+}
+
+inline fun AppCompatActivity.launchAndRepeatWithViewLifecycle(
+    minActiveState: Lifecycle.State = Lifecycle.State.STARTED,
+    crossinline block: suspend CoroutineScope.() -> Unit
+) {
+    lifecycleScope.launch {
+        lifecycle.repeatOnLifecycle(minActiveState) {
             block()
         }
     }

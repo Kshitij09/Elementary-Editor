@@ -7,12 +7,16 @@ import androidx.annotation.IdRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.net.toUri
+import androidx.core.view.isVisible
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavOptions
 import androidx.navigation.findNavController
 import com.kshitijpatil.elementaryeditor.R
 import com.kshitijpatil.elementaryeditor.databinding.ActivityEditBinding
 import com.kshitijpatil.elementaryeditor.ui.home.MainActivity
+import com.kshitijpatil.elementaryeditor.util.launchAndRepeatWithViewLifecycle
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.launch
 import timber.log.Timber
 
 class EditActivity : AppCompatActivity() {
@@ -35,6 +39,16 @@ class EditActivity : AppCompatActivity() {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         binding.cgEditOptions.setOnCheckedChangeListener { _, checkedId ->
             onNavDestinationSelected(checkedId)
+        }
+        launchAndRepeatWithViewLifecycle {
+            launch { observeCropBoundsModified() }
+        }
+    }
+
+    private suspend fun observeCropBoundsModified() {
+        editViewModel.cropBoundsModified.collect { modified ->
+            binding.ivCancel.isVisible = modified
+            binding.ivConfirm.isVisible = modified
         }
     }
 

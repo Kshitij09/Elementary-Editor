@@ -24,6 +24,8 @@ class EditViewModel(context: Context) : ViewModel() {
     private val workManager = WorkManager.getInstance(context)
     private val _targetImageUri = MutableStateFlow<Uri?>(null)
     val targetImageUri: StateFlow<Uri?> get() = _targetImageUri.asStateFlow()
+    private val _cropBoundsModified = MutableStateFlow(false)
+    val cropBoundsModified: StateFlow<Boolean> get() = _cropBoundsModified.asStateFlow()
     private var viewBounds: Rect? = null
     private val lock = Object()
 
@@ -35,6 +37,10 @@ class EditViewModel(context: Context) : ViewModel() {
         synchronized(lock) {
             this.viewBounds = viewBounds
         }
+    }
+
+    fun setCropBoundsModified(modified: Boolean) {
+        _cropBoundsModified.value = modified
     }
 
     /**
