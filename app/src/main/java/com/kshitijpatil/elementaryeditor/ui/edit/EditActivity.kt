@@ -15,6 +15,7 @@ import androidx.navigation.fragment.NavHostFragment
 import com.google.android.material.snackbar.Snackbar
 import com.kshitijpatil.elementaryeditor.R
 import com.kshitijpatil.elementaryeditor.databinding.ActivityEditBinding
+import com.kshitijpatil.elementaryeditor.ui.edit.contract.*
 import com.kshitijpatil.elementaryeditor.ui.home.MainActivity
 import com.kshitijpatil.elementaryeditor.util.launchAndRepeatWithViewLifecycle
 import kotlinx.coroutines.flow.collect

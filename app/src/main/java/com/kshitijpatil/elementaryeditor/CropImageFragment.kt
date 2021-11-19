@@ -10,10 +10,10 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.bumptech.glide.Glide
 import com.kshitijpatil.elementaryeditor.databinding.FragmentCropImageBinding
-import com.kshitijpatil.elementaryeditor.ui.edit.CropAction
-import com.kshitijpatil.elementaryeditor.ui.edit.EditUiEffect
 import com.kshitijpatil.elementaryeditor.ui.edit.EditViewModel
 import com.kshitijpatil.elementaryeditor.ui.edit.EditViewModelFactory
+import com.kshitijpatil.elementaryeditor.ui.edit.contract.CropAction
+import com.kshitijpatil.elementaryeditor.ui.edit.contract.EditUiEffect
 import com.kshitijpatil.elementaryeditor.util.getBitmapPositionInsideImageView
 import com.kshitijpatil.elementaryeditor.util.launchAndRepeatWithViewLifecycle
 import com.kshitijpatil.elementaryeditor.util.viewLifecycleScope

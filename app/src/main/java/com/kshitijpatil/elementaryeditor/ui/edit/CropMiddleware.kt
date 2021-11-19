@@ -1,30 +1,34 @@
 package com.kshitijpatil.elementaryeditor.ui.edit
 
 import android.graphics.Rect
-import android.net.Uri
 import androidx.core.net.toUri
 import androidx.lifecycle.asFlow
 import androidx.work.Data
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.workDataOf
+import com.kshitijpatil.elementaryeditor.ui.common.ReduxViewModel
+import com.kshitijpatil.elementaryeditor.ui.edit.contract.EditAction
+import com.kshitijpatil.elementaryeditor.ui.edit.contract.EditViewState
+import com.kshitijpatil.elementaryeditor.ui.edit.contract.InternalAction
+import com.kshitijpatil.elementaryeditor.util.takeWhileFinished
+import com.kshitijpatil.elementaryeditor.util.tapNullWithTimber
 import com.kshitijpatil.elementaryeditor.util.workRequest
 import com.kshitijpatil.elementaryeditor.worker.CropImageWorker
 import com.kshitijpatil.elementaryeditor.worker.WorkerConstants
 import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import timber.log.Timber
 import java.util.*
 
-class CropMiddleware(private val workManager: WorkManager) : MiddleWare<EditAction, EditViewState> {
+class CropMiddleware(private val workManager: WorkManager) :
+    ReduxViewModel.MiddleWare<EditAction, EditViewState> {
     override fun bind(
         actions: Flow<EditAction>,
         state: StateFlow<EditViewState>
     ): Flow<EditAction> {
         return actions.filter { it is InternalAction.PerformCrop }
             .flatMapMerge {
-                //flowOf(InternalAction.Cropping, InternalAction.CropFailed)
                 channelFlow {
                     val workData = prepareWorkData(state.value)
                     if (workData == null) {
@@ -37,23 +41,10 @@ class CropMiddleware(private val workManager: WorkManager) : MiddleWare<EditActi
                 }
             }
     }
-    /*override fun bind(actions: EditAction, state: EditViewState): Flow<EditAction> {
-        return if (actions == InternalAction.PerformCrop) {
-            channelFlow {
-                val workData = prepareWorkData(state)
-                if (workData == null) {
-                    send(InternalAction.CropFailed)
-                    return@channelFlow
-                }
-                val request = workRequest<CropImageWorker>(workData)
-                workManager.enqueue(request)
-                launch { observeCropWorkerForCompletion(request.id) }
-            }
-        } else emptyFlow()
-    }*/
 
     private suspend fun ProducerScope<InternalAction>.observeCropWorkerForCompletion(requestId: UUID) {
         workManager.getWorkInfoByIdLiveData(requestId).asFlow()
+            .takeWhileFinished()
             .collect { workInfo ->
                 when (workInfo.state) {
                     WorkInfo.State.SUCCEEDED -> {
@@ -73,37 +64,16 @@ class CropMiddleware(private val workManager: WorkManager) : MiddleWare<EditActi
             }
     }
 
-    private fun getImageBounds(editViewState: EditViewState): Rect? {
-        val imageBounds = editViewState.cropState.imageBounds
-        if (imageBounds == null) {
-            Timber.e("Image Bounds were not set, skipping...")
-            return null
-        }
-        return imageBounds
-    }
-
-    private fun getCropBounds(editViewState: EditViewState): Rect? {
-        val cropBounds = editViewState.cropState.cropBounds
-        if (cropBounds == null) {
-            Timber.e("Crop Bounds were not set, skipping...")
-            return null
-        }
-        return cropBounds
-    }
-
-    private fun getCurrentImageUri(editViewState: EditViewState): Uri? {
-        val imageUri = editViewState.currentImageUri
-        if (imageUri == null) {
-            Timber.e("Target ImageUri was not set, skipping...")
-            return null
-        }
-        return imageUri
-    }
-
     private fun prepareWorkData(editViewState: EditViewState): Data? {
-        val imageBounds = getImageBounds(editViewState) ?: return null
-        val cropBounds = getCropBounds(editViewState) ?: return null
-        val imageUri = getCurrentImageUri(editViewState)
+        val imageBounds = tapNullWithTimber(editViewState.cropState.imageBounds) {
+            "CropImageWorker: Image Bounds were not set, skipping..."
+        } ?: return null
+        val cropBounds = tapNullWithTimber(editViewState.cropState.cropBounds) {
+            "CropImageWorker: Crop Bounds were not set, skipping..."
+        } ?: return null
+        val imageUri = tapNullWithTimber(editViewState.currentImageUri) {
+            "CropImageWorker: Target ImageUri was not set, skipping..."
+        } ?: return null
         val viewWidth = imageBounds.width()
         val viewHeight = imageBounds.height()
         return workDataOf(
