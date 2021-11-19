@@ -8,6 +8,7 @@ import android.view.MotionEvent
 import android.view.View
 import androidx.core.graphics.toPoint
 import androidx.core.graphics.toPointF
+import timber.log.Timber
 
 
 enum class Edge {
@@ -32,11 +33,12 @@ class CropOverlay @JvmOverloads constructor(
         strokeWidth = 4f
     }
     var initialBounds: Rect? = null
+    private val lock = Object()
     private var currentCropBounds: Rect? = null
-    var onCropBoundsModifiedListener: OnCropBoundsModifiedListener? = null
+    var onCropBoundsChangedListener: OnCropBoundsChangedListener? = null
 
-    fun interface OnCropBoundsModifiedListener {
-        fun onBoundsChanged(modified: Boolean)
+    fun interface OnCropBoundsChangedListener {
+        fun onBoundsChanged(cropBounds: Rect?)
     }
 
     /**
@@ -72,8 +74,12 @@ class CropOverlay @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        currentCropBounds?.let {
-            canvas.drawRect(it, paint)
+        synchronized(lock) {
+            val cropBounds = currentCropBounds
+            cropBounds?.let {
+                //Timber.d("Redrawing $it")
+                canvas.drawRect(it, paint)
+            }
         }
     }
 
@@ -119,27 +125,41 @@ class CropOverlay @JvmOverloads constructor(
         )
         when (dragAction.activeEdge) {
             Edge.LEFT -> {
-                bounds.set(updateX, bounds.top, bounds.right, bounds.bottom)
+                currentCropBounds?.set(updateX, bounds.top, bounds.right, bounds.bottom)
             }
             Edge.TOP -> {
-                bounds.set(bounds.left, updateY, bounds.right, bounds.bottom)
+                currentCropBounds?.set(bounds.left, updateY, bounds.right, bounds.bottom)
             }
             Edge.RIGHT -> {
-                bounds.set(bounds.left, bounds.top, updateX, bounds.bottom)
+                currentCropBounds?.set(bounds.left, bounds.top, updateX, bounds.bottom)
             }
             Edge.BOTTOM -> {
-                bounds.set(bounds.left, bounds.top, bounds.right, updateY)
+                currentCropBounds?.set(bounds.left, bounds.top, bounds.right, updateY)
             }
         }
-        currentCropBounds = bounds
-        invalidate()
-        updateCropBoundsModifiedState()
+        onCropBoundsChanged()
     }
 
-    private fun updateCropBoundsModifiedState() {
-        onCropBoundsModifiedListener?.onBoundsChanged(
-            initialBounds != currentCropBounds
-        )
+    fun reset() {
+        Timber.d("Resetting")
+        synchronized(lock) {
+            val initial = initialBounds ?: return@synchronized
+            currentCropBounds?.set(initial)
+        }
+        onCropBoundsChanged()
+    }
+
+    private fun onCropBoundsChanged() {
+        postInvalidate()
+        notifyCropBoundsChanged()
+    }
+
+    private fun notifyCropBoundsChanged() {
+        val cropBounds: Rect?
+        synchronized(lock) {
+            cropBounds = currentCropBounds
+        }
+        onCropBoundsChangedListener?.onBoundsChanged(cropBounds)
     }
 
     private fun getNearestEdge(event: MotionEvent): Edge? {

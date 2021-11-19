@@ -29,7 +29,7 @@ data class SetCurrentImageUri(val imageUri: Uri) : EditAction
 data class SetActiveEditOperation(val operation: EditOperation) : EditAction
 
 sealed class CropAction : EditAction {
-    data class SetCropBounds(val cropBounds: Rect) : CropAction()
+    data class SetCropBounds(val cropBounds: Rect?) : CropAction()
     data class SetImageBounds(val imageBounds: Rect) : CropAction()
 }
 
@@ -45,41 +45,37 @@ interface MiddleWare<A, S> {
 }
 
 abstract class ReduxViewModel<S, A>(initialState: S) : ViewModel() {
-    private val _state = MutableStateFlow<S>(initialState)
+    protected val _state = MutableStateFlow<S>(initialState)
     val state: StateFlow<S>
         get() = _state.asStateFlow()
-    private val pendingActions = MutableSharedFlow<A>()
+    protected val pendingActions = MutableSharedFlow<A>()
     protected abstract val middlewares: List<MiddleWare<A, S>>
 
-    init {
+    /*init {
         viewModelScope.launch { wire() }
-    }
+    }*/
 
-    private suspend fun wire() {
+    /*protected suspend fun wire() {
         val actionFlows = middlewares.map {
             it.bind(pendingActions, state)
         }.toTypedArray()
         merge(*actionFlows).collect { reduce(it) }
-    }
+    }*/
 
-    abstract fun reduce(action: A)
+    abstract fun reduce(action: A, state: S): S
 
     fun submitAction(action: A) {
         viewModelScope.launch { pendingActions.emit(action) }
-    }
-
-    protected fun setState(reducer: S.() -> S) {
-        _state.value = reducer(_state.value)
     }
 }
 
 data class CropState(
     val cropBounds: Rect? = null,
     val imageBounds: Rect? = null,
-    val modifying: Boolean = false
+    val inProgress: Boolean = false
 ) {
     val cropBoundsModified: Boolean
-        get() = (cropBounds == imageBounds)
+        get() = (cropBounds != imageBounds)
 }
 
 enum class EditOperation {
@@ -156,8 +152,11 @@ class CropMiddleware(private val workManager: WorkManager) : MiddleWare<EditActi
 }
 
 sealed class EditUiEffect {
-    object CropSucceeded : EditUiEffect()
-    object CropFailed : EditUiEffect()
+    sealed class Crop {
+        object Succeeded : EditUiEffect()
+        object Failed : EditUiEffect()
+        object Reset : EditUiEffect()
+    }
 }
 
 class EditViewModel(
@@ -166,47 +165,66 @@ class EditViewModel(
     initialState: EditViewState
 ) : ReduxViewModel<EditViewState, EditAction>(initialState) {
     private val workManager = WorkManager.getInstance(context)
-    override val middlewares: List<MiddleWare<EditAction, EditViewState>>
-        get() = listOf(CropMiddleware(workManager))
+    override val middlewares = listOf(CropMiddleware(workManager))
     private val _uiEffect = Channel<EditUiEffect>(capacity = BUFFERED)
-    val uiEffect: Flow<EditUiEffect>
-        get() = _uiEffect.receiveAsFlow().shareIn(viewModelScope, WhileSubscribed())
+    val uiEffect: Flow<EditUiEffect> = _uiEffect
+        .receiveAsFlow()
+        .shareIn(viewModelScope, WhileSubscribed())
 
-    override fun reduce(action: EditAction) {
-        when (action) {
-            Cancel -> cancelCurrentChanges()
-            Confirm -> confirmCurrentOperation()
+    init {
+        viewModelScope.launch {
+            pendingActions
+                .map { reduce(it, state.value) }
+                .collect(_state::emit)
+        }
+        /*viewModelScope.launch {
+            val actionFlows = middlewares.map {
+                it.bind(pendingActions, state)
+            }.toTypedArray()
+            merge(*actionFlows).collect(pendingActions::emit)
+        }*/
+    }
+
+    override fun reduce(action: EditAction, state: EditViewState): EditViewState {
+        return when (action) {
+            Cancel -> {
+                sendEffect(EditUiEffect.Crop.Reset)
+                resetStateForCurrentOperation(state)
+            }
+            Confirm -> confirmedStateForCurrentOperation(state)
             is CropAction.SetCropBounds -> {
-                val cropState = state.value.cropState.copy(cropBounds = action.cropBounds)
-                setState { copy(cropState = cropState) }
+                val cropState = state.cropState.copy(cropBounds = Rect(action.cropBounds))
+                state.copy(cropState = cropState)
             }
             is CropAction.SetImageBounds -> {
-                val cropState = state.value.cropState.copy(imageBounds = action.imageBounds)
-                setState { copy(cropState = cropState) }
+                val cropState = state.cropState.copy(
+                    imageBounds = Rect(action.imageBounds),
+                    cropBounds = Rect(action.imageBounds)
+                )
+                state.copy(cropState = cropState)
             }
             is SetCurrentImageUri -> {
-                setState { copy(currentImageUri = action.imageUri) }
+                state.copy(currentImageUri = action.imageUri)
             }
             InternalAction.CropFailed -> {
-                sendEffect(EditUiEffect.CropFailed)
-                val cropState = state.value.cropState.copy(modifying = false)
-                setState { copy(cropState = cropState) }
+                sendEffect(EditUiEffect.Crop.Failed)
+                val cropState = state.cropState.copy(inProgress = false)
+                state.copy(cropState = cropState)
             }
             is InternalAction.CropSucceeded -> {
-                sendEffect(EditUiEffect.CropSucceeded)
-                val cropState = state.value.cropState.copy(modifying = false)
-                setState { copy(cropState = cropState) }
+                submitAction(SetCurrentImageUri(action.imageUri))
+                sendEffect(EditUiEffect.Crop.Succeeded)
+                state.copy(cropState = CropState())
             }
             InternalAction.Cropping -> {
-                val cropState = state.value.cropState.copy(modifying = true)
-                setState { copy(cropState = cropState) }
+                val cropState = state.cropState.copy(inProgress = true)
+                state.copy(cropState = cropState)
             }
             is SetActiveEditOperation -> {
                 handle["active-edit-operation"] = action.operation.ordinal
-                setState { copy(activeEditOperation = action.operation) }
+                state.copy(activeEditOperation = action.operation)
             }
-            else -> {
-            }
+            else -> state
         }
     }
 
@@ -217,27 +235,27 @@ class EditViewModel(
         }
     }
 
-    private fun cancelCurrentChanges() {
-        when (state.value.activeEditOperation) {
+    private fun resetStateForCurrentOperation(state: EditViewState): EditViewState {
+        return when (state.activeEditOperation) {
             EditOperation.CROP -> {
-                val currentCropState = state.value.cropState
+                val currentCropState = state.cropState
                 val cropState = currentCropState.copy(
                     cropBounds = currentCropState.imageBounds,
-                    modifying = false
                 )
-                setState { copy(cropState = cropState) }
+                state.copy(cropState = cropState)
             }
-            EditOperation.ROTATE -> TODO()
+            EditOperation.ROTATE -> state
         }
     }
 
-    private fun confirmCurrentOperation() {
-        when (state.value.activeEditOperation) {
+    private fun confirmedStateForCurrentOperation(state: EditViewState): EditViewState {
+        when (state.activeEditOperation) {
             EditOperation.CROP -> {
                 submitAction(InternalAction.PerformCrop)
             }
             EditOperation.ROTATE -> TODO()
         }
+        return state
     }
 
     /**

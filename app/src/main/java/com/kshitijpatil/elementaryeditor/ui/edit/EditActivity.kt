@@ -8,48 +8,100 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.net.toUri
 import androidx.core.view.isVisible
+import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavOptions
-import androidx.navigation.findNavController
+import androidx.navigation.fragment.NavHostFragment
+import com.google.android.material.snackbar.Snackbar
 import com.kshitijpatil.elementaryeditor.R
 import com.kshitijpatil.elementaryeditor.databinding.ActivityEditBinding
 import com.kshitijpatil.elementaryeditor.ui.home.MainActivity
 import com.kshitijpatil.elementaryeditor.util.launchAndRepeatWithViewLifecycle
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
 class EditActivity : AppCompatActivity() {
     private lateinit var binding: ActivityEditBinding
-    private val navController by lazy {
-        findNavController(R.id.edit_action_fragment_container)
-    }
+    private lateinit var navController: NavController
     private val editViewModel: EditViewModel by viewModels {
-        EditViewModelFactory(applicationContext)
+        EditViewModelFactory(this, applicationContext, null)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val imageUri = intent.getStringExtra(MainActivity.IMAGE_URI_KEY_EXTRA)
-        Timber.d("Received image-uri: $imageUri")
-        if (imageUri == null) warnAndExit()
-        else editViewModel.setTargetImageUri(imageUri.toUri())
+        handleIntentUri()
         binding = ActivityEditBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        val navHostFragment =
+            supportFragmentManager.findFragmentById(R.id.edit_action_fragment_container) as NavHostFragment
+        navController = navHostFragment.navController
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-        binding.cgEditOptions.setOnCheckedChangeListener { _, checkedId ->
-            onNavDestinationSelected(checkedId)
-        }
+        restoreSelectedEditOperation()
+        setupUiCallbacks()
         launchAndRepeatWithViewLifecycle {
-            launch { observeCropBoundsModified() }
+            launch { observeForActionVisibility() }
+            launch { observeUiEffects() }
         }
     }
 
-    private suspend fun observeCropBoundsModified() {
-        editViewModel.cropBoundsModified.collect { modified ->
-            binding.ivCancel.isVisible = modified
-            binding.ivConfirm.isVisible = modified
+    private suspend fun observeUiEffects() {
+        editViewModel.uiEffect.collect { effect ->
+            when (effect) {
+                EditUiEffect.Crop.Failed -> {
+                    showSnackbar("Crop Failed")
+                }
+                EditUiEffect.Crop.Succeeded -> {
+                    showSnackbar("Crop Successful!")
+                }
+                else -> {
+                }
+            }
         }
+    }
+
+    private fun showSnackbar(message: String) {
+        Snackbar.make(binding.root, message, Snackbar.LENGTH_SHORT).also {
+            it.anchorView = binding.scrollviewEditOptions
+        }.show()
+    }
+
+    private fun setupUiCallbacks() {
+        binding.cgEditOptions.setOnCheckedChangeListener { _, checkedId ->
+            chipIdToEditOperation(checkedId)?.let {
+                editViewModel.submitAction(SetActiveEditOperation(it))
+                onEditOperationSelected(it)
+            }
+        }
+        binding.ivConfirm.setOnClickListener { editViewModel.submitAction(Confirm) }
+        binding.ivCancel.setOnClickListener { editViewModel.submitAction(Cancel) }
+    }
+
+    private fun restoreSelectedEditOperation() {
+        val lastSelectedEditOperation = editViewModel.state.value.activeEditOperation
+        onEditOperationSelected(lastSelectedEditOperation)
+    }
+
+    private fun handleIntentUri() {
+        val imageUri = intent.getStringExtra(MainActivity.IMAGE_URI_KEY_EXTRA)
+        Timber.d("Editing image with the uri: $imageUri")
+        if (imageUri == null) {
+            warnAndExit()
+        } else {
+            editViewModel.submitAction(SetCurrentImageUri(imageUri.toUri()))
+        }
+    }
+
+    private suspend fun observeForActionVisibility() {
+        editViewModel.state
+            .map { Pair(it.cropState.cropBoundsModified, it.cropState.inProgress) }
+            .distinctUntilChanged()
+            .collect { (cropBoundsModified, cropInProgress) ->
+                binding.ivCancel.isVisible = cropBoundsModified && !cropInProgress
+                binding.ivConfirm.isVisible = cropBoundsModified && !cropInProgress
+            }
     }
 
     private fun warnAndExit() {
@@ -62,7 +114,12 @@ class EditActivity : AppCompatActivity() {
         finish()
     }
 
-    private fun onNavDestinationSelected(@IdRes checkedChipId: Int) {
+    private fun onEditOperationSelected(editOperation: EditOperation) {
+        val navDestination = editOperationToFragmentId(editOperation)
+        if (navController.currentDestination?.id == navDestination) {
+            // already at the destination
+            return
+        }
         val builder = NavOptions.Builder().setLaunchSingleTop(true).setRestoreState(true)
         builder.setPopUpTo(
             navController.graph.findStartDestination().id,
@@ -70,15 +127,20 @@ class EditActivity : AppCompatActivity() {
             saveState = true
         )
         val options = builder.build()
-        chipIdToFragmentId(checkedChipId)?.let {
-            navController.navigate(it, null, options)
+        navController.navigate(navDestination, null, options)
+    }
+
+    private fun editOperationToFragmentId(editOperation: EditOperation): Int {
+        return when (editOperation) {
+            EditOperation.CROP -> R.id.fragment_crop
+            EditOperation.ROTATE -> R.id.fragment_rotate
         }
     }
 
-    private fun chipIdToFragmentId(@IdRes chipId: Int): Int? {
+    private fun chipIdToEditOperation(@IdRes chipId: Int): EditOperation? {
         return when (chipId) {
-            R.id.chip_crop -> R.id.fragment_crop
-            R.id.chip_rotate -> R.id.fragment_rotate
+            R.id.chip_crop -> EditOperation.CROP
+            R.id.chip_rotate -> EditOperation.ROTATE
             else -> null
         }
     }
