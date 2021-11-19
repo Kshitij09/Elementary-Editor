@@ -9,6 +9,7 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.bumptech.glide.Glide
+import com.bumptech.glide.request.RequestOptions.bitmapTransform
 import com.kshitijpatil.elementaryeditor.databinding.FragmentCropImageBinding
 import com.kshitijpatil.elementaryeditor.ui.edit.EditViewModel
 import com.kshitijpatil.elementaryeditor.ui.edit.EditViewModelFactory
@@ -17,6 +18,7 @@ import com.kshitijpatil.elementaryeditor.ui.edit.contract.EditUiEffect
 import com.kshitijpatil.elementaryeditor.util.getBitmapPositionInsideImageView
 import com.kshitijpatil.elementaryeditor.util.launchAndRepeatWithViewLifecycle
 import com.kshitijpatil.elementaryeditor.util.viewLifecycleScope
+import jp.wasabeef.glide.transformations.BlurTransformation
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -78,7 +80,6 @@ class CropImageFragment : Fragment(R.layout.fragment_crop_image) {
         binding.cropOverlay.cropBoundsChangedFlow()
             .debounce(300)
             .collect {
-                //boundsHolder.setBounds(it)
                 editViewModel.submitAction(CropAction.SetCropBounds(it))
             }
     }
@@ -91,17 +92,21 @@ class CropImageFragment : Fragment(R.layout.fragment_crop_image) {
 
     private suspend fun observeCurrentImageUri() {
         editViewModel.state
-            .map { it.currentImageUri }
+            .map { Pair(it.currentImageUri, it.cropState.inProgress) }
             .stateIn(viewLifecycleScope)
-            .collect { uri ->
+            .collect { (uri, cropInProgress) ->
                 if (uri != null) {
-                    Glide.with(requireContext())
-                        .load(uri)
-                        .thumbnail(0.1f)
-                        .into(binding.imgPreview)
+                    var requestBuilder = Glide.with(requireContext()).load(uri)
+                    if (cropInProgress) {
+                        requestBuilder = requestBuilder.apply(
+                            bitmapTransform(BlurTransformation(25))
+                        )
+                    }
+                    requestBuilder.thumbnail(0.1f).into(binding.imgPreview)
                 }
                 binding.imgPreview.isVisible = uri != null
-                binding.cropOverlay.isVisible = uri != null
+                binding.cropOverlay.isVisible = uri != null && !cropInProgress
+                binding.progressCrop.isVisible = uri == null || cropInProgress
             }
     }
 

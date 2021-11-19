@@ -67,6 +67,7 @@ dependencies {
     implementation libs.timber
     implementation libs.phonemoji
     implementation libs.glide
+    implementation libs.glideTransformations
 
     testImplementation libs.junit
     testImplementation libs.truth
