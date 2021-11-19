@@ -11,7 +11,6 @@ import androidx.work.*
 import com.kshitijpatil.elementaryeditor.util.workRequest
 import com.kshitijpatil.elementaryeditor.worker.CropImageWorker
 import com.kshitijpatil.elementaryeditor.worker.WorkerConstants
-import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.Channel.Factory.BUFFERED
 import kotlinx.coroutines.channels.ProducerScope
@@ -41,7 +40,112 @@ sealed class InternalAction : EditAction {
 }
 
 interface MiddleWare<A, S> {
-    fun bind(actions: Flow<A>, state: Flow<S>): Flow<A>
+    fun bind(actions: Flow<A>, state: StateFlow<S>): Flow<A>
+}
+
+interface MiddleWareV2<A, S> {
+    fun bind(action: A, state: S): Flow<A>
+}
+
+class CropMiddlewareV2(private val workManager: WorkManager) :
+    MiddleWareV2<EditAction, EditViewState> {
+    override fun bind(action: EditAction, state: EditViewState): Flow<EditAction> {
+        return if (action is InternalAction.PerformCrop) {
+            //flowOf(InternalAction.Cropping, InternalAction.CropFailed)
+            channelFlow {
+                val workData = prepareWorkData(state)
+                if (workData == null) {
+                    send(InternalAction.CropFailed)
+                    return@channelFlow
+                }
+                val request = workRequest<CropImageWorker>(workData)
+                workManager.enqueue(request)
+                launch { observeCropWorkerForCompletion(request.id) }
+            }
+        } else emptyFlow()
+    }
+
+    private suspend fun ProducerScope<InternalAction>.observeCropWorkerForCompletion(requestId: UUID) {
+        workManager.getWorkInfoByIdLiveData(requestId).asFlow()
+            .collect { workInfo ->
+                when (workInfo.state) {
+                    WorkInfo.State.SUCCEEDED -> {
+                        val newImageUri =
+                            workInfo.outputData.getString(WorkerConstants.KEY_IMAGE_URI)
+                        newImageUri?.toUri()?.let { send(InternalAction.CropSucceeded(it)) }
+                    }
+                    WorkInfo.State.FAILED -> {
+                        send(InternalAction.CropFailed)
+                    }
+                    WorkInfo.State.RUNNING -> {
+                        send(InternalAction.Cropping)
+                    }
+                    else -> {
+                    }
+                }
+            }
+    }
+
+    private fun getImageBounds(editViewState: EditViewState): Rect? {
+        val imageBounds = editViewState.cropState.imageBounds
+        if (imageBounds == null) {
+            Timber.e("Image Bounds were not set, skipping...")
+            return null
+        }
+        return imageBounds
+    }
+
+    private fun getCropBounds(editViewState: EditViewState): Rect? {
+        val cropBounds = editViewState.cropState.cropBounds
+        if (cropBounds == null) {
+            Timber.e("Crop Bounds were not set, skipping...")
+            return null
+        }
+        return cropBounds
+    }
+
+    private fun getCurrentImageUri(editViewState: EditViewState): Uri? {
+        val imageUri = editViewState.currentImageUri
+        if (imageUri == null) {
+            Timber.e("Target ImageUri was not set, skipping...")
+            return null
+        }
+        return imageUri
+    }
+
+    private fun prepareWorkData(editViewState: EditViewState): Data? {
+        val imageBounds = getImageBounds(editViewState) ?: return null
+        val cropBounds = getCropBounds(editViewState) ?: return null
+        val imageUri = getCurrentImageUri(editViewState)
+        val viewWidth = imageBounds.width()
+        val viewHeight = imageBounds.height()
+        return workDataOf(
+            WorkerConstants.KEY_IMAGE_URI to imageUri.toString(),
+            WorkerConstants.KEY_CROP_BOUNDS to toOffsetBounds(imageBounds, cropBounds),
+            WorkerConstants.KEY_VIEW_WIDTH to viewWidth,
+            WorkerConstants.KEY_VIEW_HEIGHT to viewHeight
+        )
+    }
+
+    /**
+     * @return [IntArray] crop region coordinates in
+     *  the (offsetX, offsetY, width, height) order. If the [initialBounds]
+     *  or [currentBounds] are not initialized, the method will return null.
+     */
+    private fun toOffsetBounds(initialBounds: Rect, currentBounds: Rect): IntArray {
+        val offsetX = currentBounds.left - initialBounds.left
+        val offsetY = currentBounds.top - initialBounds.top
+        val width = currentBounds.right - currentBounds.left
+        val height = currentBounds.bottom - currentBounds.top
+        return intArrayOf(offsetX, offsetY, width, height)
+    }
+}
+
+class LoggingMiddlewareV2(private val tag: String) : MiddleWareV2<EditAction, EditViewState> {
+    override fun bind(action: EditAction, state: EditViewState): Flow<EditAction> {
+        Timber.v("tag=$tag, action=$action, state=${state}")
+        return emptyFlow()
+    }
 }
 
 abstract class ReduxViewModel<S, A>(initialState: S) : ViewModel() {
@@ -88,74 +192,28 @@ data class EditViewState(
     val cropState: CropState = CropState(),
 )
 
-class CropMiddleware(private val workManager: WorkManager) : MiddleWare<EditAction, EditViewState> {
-    override fun bind(actions: Flow<EditAction>, state: Flow<EditViewState>): Flow<EditAction> {
-        return actions.filter { it is InternalAction.PerformCrop }
-            .combine(state, ::Pair)
-            .flatMapConcat { (_, state) ->
-                channelFlow {
-                    val workData = prepareWorkData(state)
-                    if (workData == null) {
-                        send(InternalAction.CropFailed)
-                        return@channelFlow
-                    }
-                    val request = workRequest<CropImageWorker>(workData)
-                    workManager.enqueue(request)
-                    launch { observeCropWorkerForCompletion(request.id) }
-                }
-            }
-    }
-
-    private suspend fun ProducerScope<InternalAction>.observeCropWorkerForCompletion(requestId: UUID) {
-        workManager.getWorkInfoByIdLiveData(requestId).asFlow()
-            .collect { workInfo ->
-                when (workInfo.state) {
-                    WorkInfo.State.SUCCEEDED -> {
-                        val newImageUri =
-                            workInfo.outputData.getString(WorkerConstants.KEY_IMAGE_URI)
-                        newImageUri?.toUri()?.let { send(InternalAction.CropSucceeded(it)) }
-                        close(CancellationException("CropImageWorker finished"))
-                    }
-                    WorkInfo.State.FAILED -> {
-                        send(InternalAction.CropFailed)
-                        close(CancellationException("CropImageWorker finished"))
-                    }
-                    WorkInfo.State.RUNNING -> {
-                        send(InternalAction.Cropping)
-                    }
-                    else -> {
-                    }
-                }
-            }
-    }
-
-    private fun prepareWorkData(editViewState: EditViewState): Data? {
-        val _viewBounds = editViewState.cropState.imageBounds
-        if (_viewBounds == null) {
-            Timber.e("View Bounds were not set, skipping...")
-            return null
-        }
-        val imageUri = editViewState.currentImageUri
-        if (imageUri == null) {
-            Timber.e("Target ImageUri was not set, skipping...")
-            return null
-        }
-        val viewWidth = _viewBounds.width()
-        val viewHeight = _viewBounds.height()
-        return workDataOf(
-            WorkerConstants.KEY_IMAGE_URI to imageUri.toString(),
-            WorkerConstants.KEY_CROP_BOUNDS to editViewState.cropState.cropBounds,
-            WorkerConstants.KEY_VIEW_WIDTH to viewWidth,
-            WorkerConstants.KEY_VIEW_HEIGHT to viewHeight
-        )
-    }
-}
-
 sealed class EditUiEffect {
     sealed class Crop {
         object Succeeded : EditUiEffect()
         object Failed : EditUiEffect()
         object Reset : EditUiEffect()
+    }
+}
+
+class LoggingMiddleware : MiddleWare<EditAction, EditViewState> {
+    /*override fun bind(actions: EditAction, state: EditViewState): Flow<EditAction> {
+        Timber.v("action=$actions, state=$state")
+        return emptyFlow()
+    }*/
+
+    override fun bind(
+        actions: Flow<EditAction>,
+        state: StateFlow<EditViewState>
+    ): Flow<EditAction> {
+        return actions.flatMapConcat { action ->
+            Timber.v("action=$action, state=${state.value}")
+            emptyFlow()
+        }
     }
 }
 
@@ -165,7 +223,10 @@ class EditViewModel(
     initialState: EditViewState
 ) : ReduxViewModel<EditViewState, EditAction>(initialState) {
     private val workManager = WorkManager.getInstance(context)
-    override val middlewares = listOf(CropMiddleware(workManager))
+    override val middlewares = listOf(
+        CropMiddleware(workManager),
+        LoggingMiddleware()
+    )
     private val _uiEffect = Channel<EditUiEffect>(capacity = BUFFERED)
     val uiEffect: Flow<EditUiEffect> = _uiEffect
         .receiveAsFlow()
@@ -177,12 +238,26 @@ class EditViewModel(
                 .map { reduce(it, state.value) }
                 .collect(_state::emit)
         }
-        /*viewModelScope.launch {
-            val actionFlows = middlewares.map {
-                it.bind(pendingActions, state)
-            }.toTypedArray()
-            merge(*actionFlows).collect(pendingActions::emit)
+        /*val middlewares = listOf(
+            CropMiddlewareV2(workManager),
+            LoggingMiddlewareV2("system"),
+        )
+        viewModelScope.launch {
+            pendingActions.flatMapMerge { action ->
+                Timber.d("creating new flows for $action")
+                middlewares
+                    .map { it.bind(action, state.value) }
+                    .asFlow()
+                    .flattenMerge()
+            }.collect(pendingActions::emit)
         }*/
+        val middlewareActions = merge(
+            CropMiddleware(workManager).bind(pendingActions, state),
+            LoggingMiddleware().bind(pendingActions, state)
+        )
+        viewModelScope.launch {
+            middlewareActions.collect(pendingActions::emit)
+        }
     }
 
     override fun reduce(action: EditAction, state: EditViewState): EditViewState {
@@ -191,7 +266,10 @@ class EditViewModel(
                 sendEffect(EditUiEffect.Crop.Reset)
                 resetStateForCurrentOperation(state)
             }
-            Confirm -> confirmedStateForCurrentOperation(state)
+            Confirm -> {
+                Timber.d("confirm invoked")
+                confirmedStateForCurrentOperation(state)
+            }
             is CropAction.SetCropBounds -> {
                 val cropState = state.cropState.copy(cropBounds = Rect(action.cropBounds))
                 state.copy(cropState = cropState)

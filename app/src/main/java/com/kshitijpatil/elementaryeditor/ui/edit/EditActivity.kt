@@ -75,7 +75,10 @@ class EditActivity : AppCompatActivity() {
                 onEditOperationSelected(it)
             }
         }
-        binding.ivConfirm.setOnClickListener { editViewModel.submitAction(Confirm) }
+        binding.ivConfirm.setOnClickListener {
+            Timber.d("confirm clicked")
+            editViewModel.submitAction(Confirm)
+        }
         binding.ivCancel.setOnClickListener { editViewModel.submitAction(Cancel) }
     }
 
