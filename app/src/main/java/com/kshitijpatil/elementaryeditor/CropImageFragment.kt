@@ -18,7 +18,7 @@ import com.kshitijpatil.elementaryeditor.ui.edit.contract.EditUiEffect
 import com.kshitijpatil.elementaryeditor.util.getBitmapPositionInsideImageView
 import com.kshitijpatil.elementaryeditor.util.launchAndRepeatWithViewLifecycle
 import com.kshitijpatil.elementaryeditor.util.viewLifecycleScope
-import jp.wasabeef.glide.transformations.BlurTransformation
+import jp.wasabeef.transformers.glide.BlurTransformation
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -96,10 +96,11 @@ class CropImageFragment : Fragment(R.layout.fragment_crop_image) {
             .stateIn(viewLifecycleScope)
             .collect { (uri, cropInProgress) ->
                 if (uri != null) {
-                    var requestBuilder = Glide.with(requireContext()).load(uri)
+                    val context = requireContext()
+                    var requestBuilder = Glide.with(context).load(uri)
                     if (cropInProgress) {
                         requestBuilder = requestBuilder.apply(
-                            bitmapTransform(BlurTransformation(25))
+                            bitmapTransform(BlurTransformation(context, 25))
                         )
                     }
                     requestBuilder.thumbnail(0.1f).into(binding.imgPreview)
