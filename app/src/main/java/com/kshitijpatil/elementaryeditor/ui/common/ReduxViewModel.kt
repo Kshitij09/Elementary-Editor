@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 abstract class ReduxViewModel<S, A>(initialState: S) : ViewModel() {
     interface MiddleWare<A, S> {
@@ -24,9 +25,10 @@ abstract class ReduxViewModel<S, A>(initialState: S) : ViewModel() {
         }
         viewModelScope.launch {
             val internalActions = middlewares
-                .map { it.bind(pendingActions, state) }
-                .asFlow()
-                .flattenMerge()
+                .map {
+                    Timber.v("Wired ${it.javaClass.simpleName}")
+                    it.bind(pendingActions, state)
+                }.asFlow().flattenMerge()
             internalActions.collect(pendingActions::emit)
         }
     }

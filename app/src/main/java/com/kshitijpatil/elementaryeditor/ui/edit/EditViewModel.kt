@@ -4,10 +4,11 @@ import android.content.Context
 import android.graphics.Rect
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
-import androidx.work.WorkManager
 import com.kshitijpatil.elementaryeditor.ui.common.LoggingMiddleware
 import com.kshitijpatil.elementaryeditor.ui.common.ReduxViewModel
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.*
+import com.kshitijpatil.elementaryeditor.ui.edit.middleware.CropBitmapMiddleware
+import com.kshitijpatil.elementaryeditor.ui.edit.middleware.LoadBitmapFromUriMiddleware
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.Channel.Factory.BUFFERED
 import kotlinx.coroutines.flow.Flow
@@ -22,9 +23,9 @@ class EditViewModel(
     context: Context,
     initialState: EditViewState
 ) : ReduxViewModel<EditViewState, EditAction>(initialState) {
-    private val workManager = WorkManager.getInstance(context)
     override val middlewares = listOf(
-        CropMiddleware(workManager),
+        CropBitmapMiddleware(),
+        LoadBitmapFromUriMiddleware(),
         LoggingMiddleware(TAG)
     )
     private val _uiEffect = Channel<EditUiEffect>(capacity = BUFFERED)
@@ -42,7 +43,7 @@ class EditViewModel(
                 sendEffect(EditUiEffect.Crop.Reset)
                 resetStateForCurrentOperation(state)
             }
-            Confirm -> confirmedStateForCurrentOperation(state)
+            is Confirm -> confirmedStateForCurrentOperation(action.context, state)
             is CropAction.SetCropBounds -> {
                 val cropState = state.cropState.copy(cropBounds = Rect(action.cropBounds))
                 state.copy(cropState = cropState)
@@ -57,15 +58,21 @@ class EditViewModel(
             is SetCurrentImageUri -> {
                 state.copy(currentImageUri = action.imageUri)
             }
+            is InternalAction.PersistBitmap -> {
+                state.internedBitmaps.offer(action.bitmap)
+                state
+            }
             InternalAction.CropFailed -> {
                 sendEffect(EditUiEffect.Crop.Failed)
                 val cropState = state.cropState.copy(inProgress = false)
                 state.copy(cropState = cropState)
             }
             is InternalAction.CropSucceeded -> {
-                submitAction(SetCurrentImageUri(action.imageUri))
                 sendEffect(EditUiEffect.Crop.Succeeded)
-                state.copy(cropState = CropState())
+                state.copy(
+                    cropState = CropState(),
+                    currentBitmap = action.bitmap
+                )
             }
             InternalAction.Cropping -> {
                 val cropState = state.cropState.copy(inProgress = true)
@@ -75,6 +82,13 @@ class EditViewModel(
                 handle[ACTIVE_EDIT_OPERATION_KEY] = action.operation.ordinal
                 state.copy(activeEditOperation = action.operation)
             }
+            is InternalAction.CurrentBitmapUpdated -> {
+                state.copy(currentBitmap = action.bitmap)
+            }
+            /*is InternalAction.BitmapPersisted -> {
+                state.internedBitmapUris.offer(action.fileUri)
+                state.copy(bitmapPersisted = true)
+            }*/
             else -> state
         }
     }
@@ -99,10 +113,13 @@ class EditViewModel(
         }
     }
 
-    private fun confirmedStateForCurrentOperation(state: EditViewState): EditViewState {
+    private fun confirmedStateForCurrentOperation(
+        context: Context,
+        state: EditViewState
+    ): EditViewState {
         when (state.activeEditOperation) {
             EditOperation.CROP -> {
-                submitAction(InternalAction.PerformCrop)
+                submitAction(InternalAction.PerformCrop(context))
             }
             EditOperation.ROTATE -> TODO()
         }

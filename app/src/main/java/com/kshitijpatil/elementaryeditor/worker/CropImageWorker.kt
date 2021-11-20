@@ -10,11 +10,10 @@ import androidx.core.graphics.toRect
 import androidx.work.CoroutineWorker
 import androidx.work.ForegroundInfo
 import androidx.work.WorkerParameters
-import androidx.work.workDataOf
-import com.bumptech.glide.Glide
 import com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool
 import com.bumptech.glide.load.resource.bitmap.BitmapTransformation
 import com.kshitijpatil.elementaryeditor.R
+import com.kshitijpatil.elementaryeditor.util.Bound
 import com.kshitijpatil.elementaryeditor.util.createEditNotification
 import timber.log.Timber
 import java.io.File
@@ -23,9 +22,13 @@ import java.nio.charset.Charset
 import java.security.MessageDigest
 import java.util.*
 
-
+/**
+ * Crop source bitmap with provided [cropBounds] in the
+ * coordinate space of a view with [viewWidth] x [viewHeight]
+ * dimensions
+ */
 class OffsetCropTransformation(
-    private var cropBounds: IntArray,
+    private var cropBounds: Bound,
     private var viewWidth: Int,
     private var viewHeight: Int
 ) : BitmapTransformation() {
@@ -40,8 +43,6 @@ class OffsetCropTransformation(
         outWidth: Int,
         outHeight: Int
     ): Bitmap {
-        //viewWidth = if (viewWidth == 0) toTransform.width else viewWidth
-        //viewHeight = if (viewHeight == 0) toTransform.height else viewHeight
 
         val (offsetX, offsetY, width, height) = cropBounds
         val config = toTransform.config ?: Bitmap.Config.ARGB_8888
@@ -119,7 +120,8 @@ class CropImageWorker(
 ) : CoroutineWorker(appContext, workerParameters) {
 
     override suspend fun doWork(): Result {
-        return runCatching {
+        TODO()
+        /*return runCatching {
             val resourceUri = getResourceUri()
             val cropBounds = getCropBounds()
             val (viewWidth, viewHeight) = getViewDimensions()
@@ -133,7 +135,7 @@ class CropImageWorker(
 
             val cropped = bitmapTarget.get()
 
-            /*val scaleX = processed.width / viewWidth.toFloat()
+            *//*val scaleX = processed.width / viewWidth.toFloat()
             val scaleY = processed.height / viewHeight.toFloat()
             val scaledOffsetX = offsetX * scaleX
             val scaledOffsetY = offsetY * scaleY
@@ -146,7 +148,7 @@ class CropImageWorker(
                 scaledOffsetY.toInt(),
                 scaledWidth.toInt(),
                 scaledHeight.toInt()
-            )*/
+            )*//*
             writeBitmapToFile(cropped)
         }.fold(
             onSuccess = { Result.success(workDataOf(WorkerConstants.KEY_IMAGE_URI to it.toString())) },
@@ -154,7 +156,7 @@ class CropImageWorker(
                 Timber.e(it)
                 Result.failure()
             }
-        )
+        )*/
     }
 
     private fun getViewDimensions(): IntArray {

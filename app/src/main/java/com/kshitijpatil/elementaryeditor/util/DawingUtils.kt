@@ -41,3 +41,14 @@ fun getBitmapPositionInsideImageView(imageView: ImageView?): Rect? {
     val bottom = top + actH
     return Rect(left, top, right, bottom)
 }
+
+/**
+ * @return [Bound] instance calculated from the [initialBounds] and [currentBounds]
+ */
+fun toOffsetBounds(initialBounds: Rect, currentBounds: Rect): Bound {
+    val offsetX = currentBounds.left - initialBounds.left
+    val offsetY = currentBounds.top - initialBounds.top
+    val width = currentBounds.right - currentBounds.left
+    val height = currentBounds.bottom - currentBounds.top
+    return Bound(offsetX, offsetY, width, height)
+}

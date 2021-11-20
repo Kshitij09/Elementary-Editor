@@ -8,6 +8,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.net.toUri
 import androidx.core.view.isVisible
+import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavOptions
@@ -19,8 +20,8 @@ import com.kshitijpatil.elementaryeditor.ui.edit.contract.*
 import com.kshitijpatil.elementaryeditor.ui.home.MainActivity
 import com.kshitijpatil.elementaryeditor.util.launchAndRepeatWithViewLifecycle
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
@@ -78,7 +79,7 @@ class EditActivity : AppCompatActivity() {
         }
         binding.ivConfirm.setOnClickListener {
             Timber.d("confirm clicked")
-            editViewModel.submitAction(Confirm)
+            editViewModel.submitAction(Confirm(applicationContext))
         }
         binding.ivCancel.setOnClickListener { editViewModel.submitAction(Cancel) }
     }
@@ -94,14 +95,14 @@ class EditActivity : AppCompatActivity() {
         if (imageUri == null) {
             warnAndExit()
         } else {
-            editViewModel.submitAction(SetCurrentImageUri(imageUri.toUri()))
+            editViewModel.submitAction(SetCurrentImageUri(imageUri.toUri(), applicationContext))
         }
     }
 
     private suspend fun observeForActionVisibility() {
         editViewModel.state
             .map { Pair(it.cropState.cropBoundsModified, it.cropState.inProgress) }
-            .distinctUntilChanged()
+            .stateIn(lifecycleScope)
             .collect { (cropBoundsModified, cropInProgress) ->
                 binding.ivCancel.isVisible = cropBoundsModified && !cropInProgress
                 binding.ivConfirm.isVisible = cropBoundsModified && !cropInProgress

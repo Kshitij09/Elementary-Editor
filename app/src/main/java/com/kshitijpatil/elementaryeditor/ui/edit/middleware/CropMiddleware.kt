@@ -1,14 +1,13 @@
-package com.kshitijpatil.elementaryeditor.ui.edit
+package com.kshitijpatil.elementaryeditor.ui.edit.middleware
 
 import android.graphics.Rect
-import androidx.core.net.toUri
 import androidx.lifecycle.asFlow
 import androidx.work.Data
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.workDataOf
-import com.kshitijpatil.elementaryeditor.ui.common.ReduxViewModel
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.EditAction
+import com.kshitijpatil.elementaryeditor.ui.edit.contract.EditMiddleware
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.EditViewState
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.InternalAction
 import com.kshitijpatil.elementaryeditor.util.takeWhileFinished
@@ -21,8 +20,7 @@ import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.util.*
 
-class CropMiddleware(private val workManager: WorkManager) :
-    ReduxViewModel.MiddleWare<EditAction, EditViewState> {
+class CropMiddleware(private val workManager: WorkManager) : EditMiddleware {
     override fun bind(
         actions: Flow<EditAction>,
         state: StateFlow<EditViewState>
@@ -50,7 +48,8 @@ class CropMiddleware(private val workManager: WorkManager) :
                     WorkInfo.State.SUCCEEDED -> {
                         val newImageUri =
                             workInfo.outputData.getString(WorkerConstants.KEY_IMAGE_URI)
-                        newImageUri?.toUri()?.let { send(InternalAction.CropSucceeded(it)) }
+                        // TODO: Fix it
+                        //newImageUri?.toUri()?.let { send(InternalAction.CropSucceeded(it)) }
                     }
                     WorkInfo.State.FAILED -> {
                         send(InternalAction.CropFailed)

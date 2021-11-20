@@ -1,13 +1,17 @@
 package com.kshitijpatil.elementaryeditor.ui.edit.contract
 
+import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Rect
 import android.net.Uri
+import com.kshitijpatil.elementaryeditor.ui.common.ReduxViewModel
+import java.util.*
 
 
 sealed interface EditAction
-object Confirm : EditAction
+data class Confirm(val context: Context) : EditAction
 object Cancel : EditAction
-data class SetCurrentImageUri(val imageUri: Uri) : EditAction
+data class SetCurrentImageUri(val imageUri: Uri, val context: Context) : EditAction
 data class SetActiveEditOperation(val operation: EditOperation) : EditAction
 
 sealed class CropAction : EditAction {
@@ -16,9 +20,11 @@ sealed class CropAction : EditAction {
 }
 
 sealed class InternalAction : EditAction {
-    object PerformCrop : InternalAction()
+    data class PerformCrop(val context: Context) : InternalAction()
+    data class PersistBitmap(val context: Context, val bitmap: Bitmap) : InternalAction()
     object Cropping : InternalAction()
-    data class CropSucceeded(val imageUri: Uri) : InternalAction()
+    data class CropSucceeded(val bitmap: Bitmap) : InternalAction()
+    data class CurrentBitmapUpdated(val bitmap: Bitmap) : InternalAction()
     object CropFailed : InternalAction()
 }
 
@@ -38,6 +44,8 @@ enum class EditOperation {
 data class EditViewState(
     val activeEditOperation: EditOperation,
     val currentImageUri: Uri? = null,
+    val internedBitmaps: LinkedList<Bitmap> = LinkedList(),
+    val currentBitmap: Bitmap? = null,
     val cropState: CropState = CropState(),
 )
 
@@ -48,3 +56,5 @@ sealed class EditUiEffect {
         object Reset : EditUiEffect()
     }
 }
+
+interface EditMiddleware : ReduxViewModel.MiddleWare<EditAction, EditViewState>
