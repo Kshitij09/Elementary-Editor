@@ -7,4 +7,6 @@
     <string name="notification_title_crop_image">Cropping Image</string>
     <string name="notification_channel_id">edits</string>
     <string name="notification_channel_name">Edit Operations</string>
+    <string name="label_undo">Undo</string>
+    <string name="label_redo">Redo</string>
 </resources>

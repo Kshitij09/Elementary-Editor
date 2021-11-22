@@ -1,14 +1,18 @@
 package com.kshitijpatil.elementaryeditor.ui.edit
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Rect
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.kshitijpatil.elementaryeditor.ui.common.LoggingMiddleware
 import com.kshitijpatil.elementaryeditor.ui.common.ReduxViewModel
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.*
+import com.kshitijpatil.elementaryeditor.ui.edit.middleware.BitmapChronicleMiddleware
 import com.kshitijpatil.elementaryeditor.ui.edit.middleware.CropBitmapMiddleware
 import com.kshitijpatil.elementaryeditor.ui.edit.middleware.LoadBitmapFromUriMiddleware
+import com.kshitijpatil.elementaryeditor.util.chronicle.Chronicle
+import com.kshitijpatil.elementaryeditor.util.chronicle.createChronicle
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.Channel.Factory.BUFFERED
 import kotlinx.coroutines.flow.Flow
@@ -23,8 +27,15 @@ class EditViewModel(
     context: Context,
     initialState: EditViewState
 ) : ReduxViewModel<EditViewState, EditAction>(initialState) {
+    // TODO: Fetch this from BuildConfig
+    private val maxUndoStackSize: Int = 10
+    private val bitmapChronicle: Chronicle<Bitmap> = createChronicle(
+        maxSize = maxUndoStackSize,
+        threadSafe = true
+    )
     override val middlewares = listOf(
         CropBitmapMiddleware(),
+        BitmapChronicleMiddleware(bitmapChronicle),
         LoadBitmapFromUriMiddleware(),
         LoggingMiddleware(TAG)
     )
@@ -58,10 +69,6 @@ class EditViewModel(
             is SetCurrentImageUri -> {
                 state.copy(currentImageUri = action.imageUri)
             }
-            is InternalAction.PersistBitmap -> {
-                state.internedBitmaps.offer(action.bitmap)
-                state
-            }
             InternalAction.CropFailed -> {
                 sendEffect(EditUiEffect.Crop.Failed)
                 val cropState = state.cropState.copy(inProgress = false)
@@ -82,14 +89,25 @@ class EditViewModel(
                 handle[ACTIVE_EDIT_OPERATION_KEY] = action.operation.ordinal
                 state.copy(activeEditOperation = action.operation)
             }
-            is InternalAction.CurrentBitmapUpdated -> {
-                state.copy(currentBitmap = action.bitmap)
+            is InternalAction.BitmapLoaded -> {
+                val newState = state.copy(bitmapLoading = false)
+                if (action.bitmap == null)
+                    newState
+                else
+                    newState.copy(currentBitmap = action.bitmap)
             }
-            /*is InternalAction.BitmapPersisted -> {
-                state.internedBitmapUris.offer(action.fileUri)
-                state.copy(bitmapPersisted = true)
-            }*/
-            else -> state
+            InternalAction.BitmapLoading -> state.copy(bitmapLoading = true)
+
+            is InternalAction.StepsCountUpdated -> {
+                state.copy(backwardSteps = action.backwardSteps, forwardSteps = action.forwardSteps)
+            }
+            // actions intercepted by the middlewares should explicitly be listed here
+            is InternalAction.PersistBitmap -> state
+            is InternalAction.MutatingAction.PerformCrop -> state
+            InternalAction.PersistBitmapSkipped -> state
+            Redo -> state
+            PeekFirst -> state
+            Undo -> state
         }
     }
 
@@ -119,7 +137,7 @@ class EditViewModel(
     ): EditViewState {
         when (state.activeEditOperation) {
             EditOperation.CROP -> {
-                submitAction(InternalAction.PerformCrop(context))
+                submitAction(InternalAction.MutatingAction.PerformCrop(context))
             }
             EditOperation.ROTATE -> TODO()
         }

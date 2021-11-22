@@ -1,6 +1,8 @@
 package com.kshitijpatil.elementaryeditor.ui.edit
 
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.annotation.IdRes
@@ -41,12 +43,46 @@ class EditActivity : AppCompatActivity() {
             supportFragmentManager.findFragmentById(R.id.edit_action_fragment_container) as NavHostFragment
         navController = navHostFragment.navController
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
+        setupToolbar()
         restoreSelectedEditOperation()
         setupUiCallbacks()
         launchAndRepeatWithViewLifecycle {
             launch { observeForActionVisibility() }
+            launch { observeForUndoRedoEnabled() }
             launch { observeUiEffects() }
         }
+    }
+
+    private suspend fun observeForUndoRedoEnabled() {
+        editViewModel.state
+            .map { Pair(it.forwardSteps, it.backwardSteps) }
+            .stateIn(lifecycleScope)
+            .collect { (forwardSteps, backwardSteps) ->
+                binding.toolbar.menu.findItem(R.id.menu_item_undo).isEnabled = backwardSteps != 0
+                binding.toolbar.menu.findItem(R.id.menu_item_redo).isEnabled = forwardSteps != 0
+            }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.edit_menu, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem) = when (item.itemId) {
+        R.id.menu_item_undo -> {
+            editViewModel.submitAction(Undo)
+            true
+        }
+        R.id.menu_item_redo -> {
+            editViewModel.submitAction(Redo)
+            true
+        }
+        else -> super.onOptionsItemSelected(item)
+    }
+
+    private fun setupToolbar() {
+        setSupportActionBar(binding.toolbar)
+        supportActionBar?.setDisplayHomeAsUpEnabled(true)
     }
 
     private suspend fun observeUiEffects() {

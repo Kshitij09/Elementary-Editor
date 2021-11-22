@@ -25,7 +25,7 @@ class CropMiddleware(private val workManager: WorkManager) : EditMiddleware {
         actions: Flow<EditAction>,
         state: StateFlow<EditViewState>
     ): Flow<EditAction> {
-        return actions.filter { it is InternalAction.PerformCrop }
+        return actions.filter { it is InternalAction.MutatingAction.PerformCrop }
             .flatMapMerge {
                 channelFlow {
                     val workData = prepareWorkData(state.value)

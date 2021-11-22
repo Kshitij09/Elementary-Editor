@@ -20,8 +20,9 @@ class CropBitmapMiddleware : EditMiddleware {
         actions: Flow<EditAction>,
         state: StateFlow<EditViewState>
     ): Flow<EditAction> {
-        return actions.filter { it is InternalAction.PerformCrop }
-            .map { (it as InternalAction.PerformCrop).context }
+        return actions.filter { it is InternalAction.MutatingAction.PerformCrop }
+            .map { (it as InternalAction.MutatingAction.PerformCrop).context }
+            // cancels upstream flow in favor of new downstream events
             .flatMapLatest { context ->
                 val currentState = state.value
                 channelFlow {
@@ -32,7 +33,6 @@ class CropBitmapMiddleware : EditMiddleware {
                         close()
                         return@channelFlow
                     }
-                    send(InternalAction.PersistBitmap(context, bitmap))
 
                     val imageBounds = currentState.cropState.imageBounds
                     if (imageBounds == null) {
@@ -68,6 +68,12 @@ class CropBitmapMiddleware : EditMiddleware {
                         // emitting a signal to modify the same
                         //state.first { it.bitmapPersisted }
                         send(InternalAction.CropSucceeded(cropped))
+                        send(InternalAction.PersistBitmap(cropped))
+                    }
+                    cropJob.invokeOnCompletion {
+                        it?.let {
+                            trySend(InternalAction.CropFailed)
+                        }
                     }
                     awaitClose { cropJob.cancel() }
                 }

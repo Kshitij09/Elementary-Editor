@@ -27,7 +27,8 @@ class LoadBitmapFromUriMiddleware(
                 channelFlow {
                     val loadBitmapJob = launch(Dispatchers.Default) {
                         val bitmap = glideTarget.get()
-                        send(InternalAction.CurrentBitmapUpdated(bitmap))
+                        send(InternalAction.BitmapLoaded(bitmap))
+                        send(InternalAction.PersistBitmap(bitmap))
                     }
                     awaitClose {
                         loadBitmapJob.cancel()
