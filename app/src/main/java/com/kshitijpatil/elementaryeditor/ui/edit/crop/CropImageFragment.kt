@@ -1,4 +1,4 @@
-package com.kshitijpatil.elementaryeditor
+package com.kshitijpatil.elementaryeditor.ui.edit.crop
 
 import android.graphics.Rect
 import android.os.Bundle
@@ -9,11 +9,9 @@ import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
 import com.bumptech.glide.Glide
-import com.bumptech.glide.load.DataSource
-import com.bumptech.glide.load.engine.GlideException
-import com.bumptech.glide.request.RequestListener
 import com.bumptech.glide.request.RequestOptions.bitmapTransform
-import com.bumptech.glide.request.target.Target
+import com.kshitijpatil.elementaryeditor.ImageSaver
+import com.kshitijpatil.elementaryeditor.R
 import com.kshitijpatil.elementaryeditor.databinding.FragmentCropImageBinding
 import com.kshitijpatil.elementaryeditor.ui.edit.EditViewModel
 import com.kshitijpatil.elementaryeditor.ui.edit.EditViewModelFactory
@@ -35,7 +33,6 @@ class CropImageFragment : Fragment(R.layout.fragment_crop_image) {
     }
     private var _binding: FragmentCropImageBinding? = null
     private val binding: FragmentCropImageBinding get() = _binding!!
-    //private var currentBitmap: Bitmap? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -63,41 +60,6 @@ class CropImageFragment : Fragment(R.layout.fragment_crop_image) {
     ): View? {
         _binding = FragmentCropImageBinding.inflate(inflater, container, false)
         binding.imgPreview.addOnLayoutChangeListener(previewImageChangedListener)
-        /*binding.btnSave.setOnClickListener {
-            val currentState = editViewModel.state.value
-            val bitmap = tapNullWithTimber(currentBitmap) {
-                "Current Bitmap is null, returning..."
-            } ?: return@setOnClickListener
-            val imageBounds = tapNullWithTimber(currentState.cropState.imageBounds) {
-                "CropImageWorker: Image Bounds were not set, skipping..."
-            } ?: return@setOnClickListener
-            val cropBounds = tapNullWithTimber(currentState.cropState.cropBounds) {
-                "CropImageWorker: Crop Bounds were not set, skipping..."
-            } ?: return@setOnClickListener
-            val viewWidth = imageBounds.width()
-            val viewHeight = imageBounds.height()
-            Glide.with(requireContext())
-                .asBitmap()
-                .load(bitmap)
-                .transform(
-                    OffsetCropTransformation(
-                        cropBounds = toOffsetBounds(imageBounds, cropBounds),
-                        viewWidth = viewWidth,
-                        viewHeight = viewHeight
-                    )
-                ).addListener(object : DefaultRequestListener<Bitmap>(){
-                    override fun onResourceReady(
-                        resource: Bitmap,
-                        model: Any?,
-                        target: Target<Bitmap>?,
-                        dataSource: DataSource?,
-                        isFirstResource: Boolean
-                    ): Boolean {
-                        currentBitmap = resource
-                        return false
-                    }
-                }).into(binding.imgPreview)
-        }*/
         return binding.root
     }
 
@@ -157,16 +119,6 @@ class CropImageFragment : Fragment(R.layout.fragment_crop_image) {
                         )
                     }
                     requestBuilder.thumbnail(0.1f).into(binding.imgPreview)
-                    /*viewLifecycleScope.launch(Dispatchers.Default) {
-                        val target = Glide.with(context)
-                            .asBitmap()
-                            .load(uri)
-                            .thumbnail(0.1f)
-                            .submit()
-
-                        currentBitmap = target.get()
-                        Timber.d("Thumbnail bitmap loaded in memory")
-                    }*/
                 }
                 binding.imgPreview.isVisible = bitmap != null
                 binding.cropOverlay.isVisible = bitmap != null && !cropInProgress
@@ -183,22 +135,4 @@ class CropImageFragment : Fragment(R.layout.fragment_crop_image) {
             awaitClose { onCropBoundsChangedListener = null }
         }
     }
-}
-
-open class DefaultRequestListener<T> : RequestListener<T> {
-    override fun onLoadFailed(
-        e: GlideException?,
-        model: Any?,
-        target: Target<T>?,
-        isFirstResource: Boolean
-    ): Boolean = false
-
-    override fun onResourceReady(
-        resource: T,
-        model: Any?,
-        target: Target<T>?,
-        dataSource: DataSource?,
-        isFirstResource: Boolean
-    ): Boolean = false
-
 }

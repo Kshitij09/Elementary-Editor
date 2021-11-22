@@ -1,4 +1,4 @@
-package com.kshitijpatil.elementaryeditor
+package com.kshitijpatil.elementaryeditor.ui.edit.crop
 
 import android.annotation.SuppressLint
 import android.content.Context

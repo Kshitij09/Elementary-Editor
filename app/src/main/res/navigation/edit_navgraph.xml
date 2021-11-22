@@ -7,7 +7,7 @@
 
     <fragment
         android:id="@id/fragment_crop"
-        android:name="com.kshitijpatil.elementaryeditor.CropImageFragment"
+        android:name="com.kshitijpatil.elementaryeditor.ui.edit.crop.CropImageFragment"
         android:label="CropImageFragment"
         tools:layout="@layout/fragment_crop_image" />
 
