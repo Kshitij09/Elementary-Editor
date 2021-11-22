@@ -10,12 +10,13 @@
         android:layout_height="wrap_content"
         android:layout_alignParentTop="true"
         android:layout_centerHorizontal="true"
-        android:background="#1d1d1d"
+        android:background="@color/status_bar"
         android:elevation="4dp"
         android:minHeight="?attr/actionBarSize"
+        app:navigationIcon="@drawable/ic_rounded_filled_left_arrow"
         android:theme="@style/ThemeOverlay.AppCompat.ActionBar"
         app:menu="@menu/edit_menu"
-        app:navigationIcon="@drawable/ic_arrow_back_ios"
+        app:title="Edit"
         app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
 
     <androidx.fragment.app.FragmentContainerView
@@ -32,20 +33,18 @@
 
     <ImageView
         android:id="@+id/iv_cancel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:layout_alignTop="@id/scrollview_edit_options"
         android:layout_alignBottom="@id/scrollview_edit_options"
         android:layout_alignParentStart="true"
         android:layout_alignParentBottom="true"
-        android:layout_marginEnd="8dp"
+        android:layout_marginStart="16dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:clickable="true"
         android:contentDescription="@null"
         android:focusable="true"
-        android:padding="12dp"
-        app:srcCompat="@drawable/ic_close"
-        app:tint="@color/white" />
+        app:srcCompat="@drawable/ic_outlined_rounded_cancel" />
 
     <HorizontalScrollView
         android:id="@+id/scrollview_edit_options"
@@ -54,7 +53,8 @@
         android:layout_alignParentBottom="true"
         android:layout_marginHorizontal="12dp"
         android:layout_toStartOf="@id/iv_confirm"
-        android:layout_toEndOf="@id/iv_cancel">
+        android:layout_toEndOf="@id/iv_cancel"
+        android:paddingVertical="8dp">
 
         <com.google.android.material.chip.ChipGroup
             android:id="@+id/cg_edit_options"
@@ -84,18 +84,17 @@
 
     <ImageView
         android:id="@+id/iv_confirm"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
         android:layout_alignTop="@id/scrollview_edit_options"
         android:layout_alignBottom="@id/scrollview_edit_options"
         android:layout_alignParentEnd="true"
         android:layout_alignParentBottom="true"
-        android:layout_marginEnd="8dp"
+        android:layout_marginEnd="16dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:clickable="true"
         android:contentDescription="@null"
         android:focusable="true"
-        android:padding="12dp"
-        app:srcCompat="@drawable/ic_check"
-        app:tint="@color/white" />
+        app:srcCompat="@drawable/ic_rounded_check"
+        app:tint="@android:color/holo_green_dark" />
 </RelativeLayout>
