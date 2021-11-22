@@ -88,10 +88,10 @@ class EditActivity : AppCompatActivity() {
     private suspend fun observeUiEffects() {
         editViewModel.uiEffect.collect { effect ->
             when (effect) {
-                EditUiEffect.Crop.Failed -> {
+                Crop.Failed -> {
                     showSnackbar("Crop Failed")
                 }
-                EditUiEffect.Crop.Succeeded -> {
+                Crop.Succeeded -> {
                     showSnackbar("Crop Successful!")
                 }
                 else -> {
@@ -137,11 +137,10 @@ class EditActivity : AppCompatActivity() {
 
     private suspend fun observeForActionVisibility() {
         editViewModel.state
-            .map { Pair(it.cropState.cropBoundsModified, it.cropState.inProgress) }
-            .stateIn(lifecycleScope)
-            .collect { (cropBoundsModified, cropInProgress) ->
-                binding.ivCancel.isVisible = cropBoundsModified && !cropInProgress
-                binding.ivConfirm.isVisible = cropBoundsModified && !cropInProgress
+            .collect { state ->
+                val inProgress = state.cropState.inProgress || state.bitmapLoading
+                binding.ivCancel.isVisible = state.imageModified && !inProgress
+                binding.ivConfirm.isVisible = state.imageModified && !inProgress
             }
     }
 

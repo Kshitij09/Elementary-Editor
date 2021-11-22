@@ -9,4 +9,5 @@
     <string name="notification_channel_name">Edit Operations</string>
     <string name="label_undo">Undo</string>
     <string name="label_redo">Redo</string>
+    <string name="info_save_changes_warning">Save your changes or discard them?</string>
 </resources>

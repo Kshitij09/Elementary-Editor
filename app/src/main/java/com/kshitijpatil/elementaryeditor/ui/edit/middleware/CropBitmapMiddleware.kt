@@ -5,8 +5,8 @@ import com.kshitijpatil.elementaryeditor.ui.edit.contract.EditAction
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.EditMiddleware
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.EditViewState
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.InternalAction
+import com.kshitijpatil.elementaryeditor.util.glide.OffsetCropTransformation
 import com.kshitijpatil.elementaryeditor.util.toOffsetBounds
-import com.kshitijpatil.elementaryeditor.worker.OffsetCropTransformation
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.*

@@ -11,6 +11,7 @@ import com.kshitijpatil.elementaryeditor.ui.edit.contract.*
 import com.kshitijpatil.elementaryeditor.ui.edit.middleware.BitmapChronicleMiddleware
 import com.kshitijpatil.elementaryeditor.ui.edit.middleware.CropBitmapMiddleware
 import com.kshitijpatil.elementaryeditor.ui.edit.middleware.LoadBitmapFromUriMiddleware
+import com.kshitijpatil.elementaryeditor.ui.edit.middleware.RotateBitmapMiddleware
 import com.kshitijpatil.elementaryeditor.util.chronicle.Chronicle
 import com.kshitijpatil.elementaryeditor.util.chronicle.createChronicle
 import kotlinx.coroutines.channels.Channel
@@ -20,6 +21,7 @@ import kotlinx.coroutines.flow.SharingStarted.Companion.WhileSubscribed
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.launch
+import timber.log.Timber
 
 
 class EditViewModel(
@@ -35,6 +37,7 @@ class EditViewModel(
     )
     override val middlewares = listOf(
         CropBitmapMiddleware(),
+        RotateBitmapMiddleware(),
         BitmapChronicleMiddleware(bitmapChronicle),
         LoadBitmapFromUriMiddleware(),
         LoggingMiddleware(TAG)
@@ -51,7 +54,8 @@ class EditViewModel(
     override fun reduce(action: EditAction, state: EditViewState): EditViewState {
         return when (action) {
             Cancel -> {
-                sendEffect(EditUiEffect.Crop.Reset)
+                val resetEffect = resetEffectFor(state.activeEditOperation)
+                sendEffect(resetEffect)
                 resetStateForCurrentOperation(state)
             }
             is Confirm -> confirmedStateForCurrentOperation(action.context, state)
@@ -69,17 +73,29 @@ class EditViewModel(
             is SetCurrentImageUri -> {
                 state.copy(currentImageUri = action.imageUri)
             }
+            is RotateAction.SetRotationAngle -> {
+                state.copy(rotateState = RotateState(action.rotationAngle))
+            }
             InternalAction.CropFailed -> {
-                sendEffect(EditUiEffect.Crop.Failed)
+                sendEffect(Crop.Failed)
+                val cropState = state.cropState.copy(inProgress = false)
+                state.copy(cropState = cropState)
+            }
+            InternalAction.RotateFailed -> {
+                sendEffect(Crop.Failed)
                 val cropState = state.cropState.copy(inProgress = false)
                 state.copy(cropState = cropState)
             }
             is InternalAction.CropSucceeded -> {
-                sendEffect(EditUiEffect.Crop.Succeeded)
+                sendEffect(Crop.Succeeded)
                 state.copy(
                     cropState = CropState(),
                     currentBitmap = action.bitmap
                 )
+            }
+            is InternalAction.RotateSucceeded -> {
+                sendEffect(Rotate.Succeeded)
+                state.copy(currentBitmap = action.bitmap, bitmapLoading = false)
             }
             InternalAction.Cropping -> {
                 val cropState = state.cropState.copy(inProgress = true)
@@ -104,6 +120,7 @@ class EditViewModel(
             // actions intercepted by the middlewares should explicitly be listed here
             is InternalAction.PersistBitmap -> state
             is InternalAction.MutatingAction.PerformCrop -> state
+            is InternalAction.MutatingAction.Rotate -> state
             InternalAction.PersistBitmapSkipped -> state
             Redo -> state
             PeekFirst -> state
@@ -111,10 +128,19 @@ class EditViewModel(
         }
     }
 
+    private fun resetEffectFor(activeEditOperation: EditOperation): EditUiEffect {
+        return when (activeEditOperation) {
+            EditOperation.CROP -> Crop.Reset
+            EditOperation.ROTATE -> Rotate.Reset
+        }
+    }
+
     private fun sendEffect(effect: EditUiEffect) {
         viewModelScope.launch {
-            if (!_uiEffect.isClosedForSend)
+            if (!_uiEffect.isClosedForSend) {
+                Timber.d("Sending ${effect::class.qualifiedName} Effect")
                 _uiEffect.send(effect)
+            }
         }
     }
 
@@ -127,7 +153,7 @@ class EditViewModel(
                 )
                 state.copy(cropState = cropState)
             }
-            EditOperation.ROTATE -> state
+            EditOperation.ROTATE -> state.copy(rotateState = RotateState())
         }
     }
 
@@ -139,7 +165,9 @@ class EditViewModel(
             EditOperation.CROP -> {
                 submitAction(InternalAction.MutatingAction.PerformCrop(context))
             }
-            EditOperation.ROTATE -> TODO()
+            EditOperation.ROTATE -> {
+                submitAction(InternalAction.MutatingAction.Rotate(context))
+            }
         }
         return state
     }

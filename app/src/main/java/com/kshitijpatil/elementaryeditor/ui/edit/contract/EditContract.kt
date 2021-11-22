@@ -21,6 +21,10 @@ sealed class CropAction : EditAction {
     data class SetImageBounds(val imageBounds: Rect) : CropAction()
 }
 
+sealed class RotateAction : EditAction {
+    data class SetRotationAngle(val rotationAngle: Float) : RotateAction()
+}
+
 sealed class InternalAction : EditAction {
     /** These action indicate current bitmap is about to get changed
      * Necessary steps such as persisting current bitmap should be
@@ -30,6 +34,7 @@ sealed class InternalAction : EditAction {
         abstract val context: Context
 
         data class PerformCrop(override val context: Context) : MutatingAction()
+        data class Rotate(override val context: Context) : MutatingAction()
     }
 
     data class PersistBitmap(val bitmap: Bitmap) : InternalAction()
@@ -37,9 +42,11 @@ sealed class InternalAction : EditAction {
     object BitmapLoading : InternalAction()
     object PersistBitmapSkipped : InternalAction()
     data class CropSucceeded(val bitmap: Bitmap) : InternalAction()
+    data class RotateSucceeded(val bitmap: Bitmap) : InternalAction()
     data class BitmapLoaded(val bitmap: Bitmap?) : InternalAction()
     data class StepsCountUpdated(val forwardSteps: Int, val backwardSteps: Int) : InternalAction()
     object CropFailed : InternalAction()
+    object RotateFailed : InternalAction()
 }
 
 data class CropState(
@@ -51,6 +58,14 @@ data class CropState(
 ) {
     val cropBoundsModified: Boolean
         get() = (cropBounds != imageBounds)
+}
+
+@JvmInline
+value class RotateState(
+    val rotationAngle: Float = 0f
+) {
+    val modified: Boolean
+        get() = rotationAngle != 0f
 }
 
 enum class EditOperation {
@@ -65,14 +80,24 @@ data class EditViewState(
     val forwardSteps: Int = 0,
     val bitmapLoading: Boolean = false,
     val cropState: CropState = CropState(),
-)
+    val rotateState: RotateState = RotateState(),
+) {
+    val imageModified: Boolean
+        get() = cropState.cropBoundsModified || rotateState.modified
+}
 
-sealed class EditUiEffect {
-    sealed class Crop {
-        object Succeeded : EditUiEffect()
-        object Failed : EditUiEffect()
-        object Reset : EditUiEffect()
-    }
+sealed interface EditUiEffect
+
+sealed class Crop : EditUiEffect {
+    object Succeeded : Crop()
+    object Failed : Crop()
+    object Reset : Crop()
+}
+
+sealed class Rotate : EditUiEffect {
+    object Succeeded : Rotate()
+    object Failed : Rotate()
+    object Reset : Rotate()
 }
 
 interface EditMiddleware : ReduxViewModel.MiddleWare<EditAction, EditViewState>
