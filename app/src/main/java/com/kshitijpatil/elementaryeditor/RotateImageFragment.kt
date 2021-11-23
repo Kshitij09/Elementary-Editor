@@ -148,12 +148,18 @@ class RotateImageFragment : Fragment() {
         super.onViewCreated(view, savedInstanceState)
         binding.ivRotate.setOnClickListener {
             currentRotation = binding.imgPreview.animatedRotate(currentRotation, false)
-            editViewModel.submitAction(RotateAction.SetRotationAngle(currentRotation))
+            editViewModel.submitAction(RotateAction.SetRotationAngle(resetIf360(currentRotation)))
         }
         launchAndRepeatWithViewLifecycle {
             launch { observeCurrentBitmap() }
             launch { observeRotateUiEffect() }
         }
+    }
+
+    private fun resetIf360(currentRotation: Float): Float {
+        return if (currentRotation.absoluteValue == 360f)
+            0f
+        else currentRotation
     }
 
     private suspend fun observeCurrentBitmap() {
@@ -191,7 +197,7 @@ class RotateImageFragment : Fragment() {
      * 0 -- 90 -- 180 -- 270 -- 360 -- 0
      */
     private fun ImageView.animatedRotate(currentRotation: Float, clockwise: Boolean = true): Float {
-        val fromRotation = if (currentRotation.absoluteValue == 360f) 0f else currentRotation
+        val fromRotation = resetIf360(currentRotation)
         val rotateDegrees = if (clockwise) 90f else -90f
         val toRotation = (fromRotation + rotateDegrees) % 450f
         Timber.d("Rotating from $fromRotation to $toRotation")
