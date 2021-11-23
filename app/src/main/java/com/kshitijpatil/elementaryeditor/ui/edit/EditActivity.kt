@@ -138,9 +138,12 @@ class EditActivity : AppCompatActivity() {
     private suspend fun observeForActionVisibility() {
         editViewModel.state
             .collect { state ->
-                val inProgress = state.cropState.inProgress || state.bitmapLoading
-                binding.ivCancel.isVisible = state.imageModified && !inProgress
-                binding.ivConfirm.isVisible = state.imageModified && !inProgress
+                val activeOpModified = when (state.activeEditOperation) {
+                    EditOperation.CROP -> state.cropState.cropBoundsModified
+                    EditOperation.ROTATE -> state.rotateState.modified
+                }
+                binding.ivCancel.isVisible = activeOpModified && !state.bitmapLoading
+                binding.ivConfirm.isVisible = activeOpModified && !state.bitmapLoading
             }
     }
 
