@@ -89,16 +89,17 @@ data class EditViewState(
 sealed interface EditUiEffect
 sealed interface SuccessEffect
 sealed interface FailureEffect
+sealed interface ResetEffect
 sealed class Crop : EditUiEffect {
     object Succeeded : Crop(), SuccessEffect
     object Failed : Crop(), FailureEffect
-    object Reset : Crop()
+    object Reset : Crop(), ResetEffect
 }
 
 sealed class Rotate : EditUiEffect {
     object Succeeded : Rotate(), SuccessEffect
     object Failed : Rotate(), FailureEffect
-    object Reset : Rotate()
+    object Reset : Rotate(), ResetEffect
 }
 
 interface EditMiddleware : ReduxViewModel.MiddleWare<EditAction, EditViewState>

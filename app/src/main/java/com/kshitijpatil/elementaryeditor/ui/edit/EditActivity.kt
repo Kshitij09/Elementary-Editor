@@ -23,7 +23,6 @@ import com.kshitijpatil.elementaryeditor.ui.edit.contract.*
 import com.kshitijpatil.elementaryeditor.ui.home.MainActivity
 import com.kshitijpatil.elementaryeditor.util.launchAndRepeatWithViewLifecycle
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -50,7 +49,7 @@ class EditActivity : AppCompatActivity() {
                     editViewModel.submitAction(Cancel)
                 }
                 ChangeAction.CANCEL -> {
-                    binding.cgEditOptions.check(editOperationToChipId(lastSelectedEditOperation))
+                    binding.cgEditOptions.check(lastSelectedEditOperation.toChipId())
                     pendingEditOpSelected = null
                 }
             }
@@ -67,7 +66,7 @@ class EditActivity : AppCompatActivity() {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         setupToolbar()
         restoreSelectedEditOperation()
-        lastSelectedEditOperation = chipIdToEditOperation(binding.cgEditOptions.checkedChipId)
+        lastSelectedEditOperation = binding.cgEditOptions.checkedChipId.toEditOperation()
         setupUiCallbacks()
         launchAndRepeatWithViewLifecycle {
             launch { observeForActionVisibility() }
@@ -115,7 +114,7 @@ class EditActivity : AppCompatActivity() {
         binding.cgEditOptions.setOnCheckedChangeListener { group, checkedId ->
             if (pendingEditOpSelected != null) return@setOnCheckedChangeListener
             val imageModified = editViewModel.state.value.imageModified
-            val currentSelected = chipIdToEditOperation(checkedId)
+            val currentSelected = checkedId.toEditOperation()
             if (imageModified) {
                 promptSaveChanges(currentSelected)
             } else onEditOperationSelected(currentSelected)
@@ -133,13 +132,10 @@ class EditActivity : AppCompatActivity() {
 
     private suspend fun observeUiEffects() {
         editViewModel.uiEffect
-            .filter { it is SuccessEffect || it is FailureEffect }
             .collect {
                 when (it) {
-                    is SuccessEffect -> performPendingEditOperationSelections()
+                    is SuccessEffect, is ResetEffect -> performPendingEditOperationSelections()
                     is FailureEffect -> showSnackbar(R.string.error_operation_failed)
-                    else -> {
-                    }
                 }
             }
     }
@@ -227,8 +223,8 @@ class EditActivity : AppCompatActivity() {
     }
 }
 
-private fun chipIdToEditOperation(@IdRes chipId: Int): EditOperation {
-    return when (chipId) {
+private fun Int.toEditOperation(): EditOperation {
+    return when (this) {
         R.id.chip_crop -> EditOperation.CROP
         R.id.chip_rotate -> EditOperation.ROTATE
         else -> EditOperation.CROP
@@ -236,8 +232,8 @@ private fun chipIdToEditOperation(@IdRes chipId: Int): EditOperation {
 }
 
 @IdRes
-private fun editOperationToChipId(editOperation: EditOperation): Int {
-    return when (editOperation) {
+private fun EditOperation.toChipId(): Int {
+    return when (this) {
         EditOperation.CROP -> R.id.chip_crop
         EditOperation.ROTATE -> R.id.chip_rotate
     }
