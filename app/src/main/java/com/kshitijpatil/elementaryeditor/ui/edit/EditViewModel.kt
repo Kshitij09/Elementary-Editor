@@ -95,7 +95,11 @@ class EditViewModel(
             }
             is InternalAction.RotateSucceeded -> {
                 sendEffect(Rotate.Succeeded)
-                state.copy(currentBitmap = action.bitmap, bitmapLoading = false)
+                state.copy(
+                    currentBitmap = action.bitmap,
+                    bitmapLoading = false,
+                    rotateState = RotateState()
+                )
             }
             InternalAction.Cropping -> {
                 val cropState = state.cropState.copy(inProgress = true)
