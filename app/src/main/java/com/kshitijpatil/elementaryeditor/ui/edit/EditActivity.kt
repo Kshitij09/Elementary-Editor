@@ -63,8 +63,11 @@ class EditActivity : AppCompatActivity() {
             }
     }
 
-    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        val currentState = editViewModel.state.value
         menuInflater.inflate(R.menu.edit_menu, menu)
+        menu.findItem(R.id.menu_item_undo)?.isEnabled = currentState.backwardSteps != 0
+        menu.findItem(R.id.menu_item_redo)?.isEnabled = currentState.forwardSteps != 0
         return true
     }
 
