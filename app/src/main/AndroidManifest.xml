@@ -42,6 +42,7 @@
             </intent-filter>
         </activity>
 
+        <!-- TODO: Remove Locked Orientation -->
         <activity
             android:name=".ui.edit.EditActivity"
             android:parentActivityName=".ui.home.MainActivity"
