@@ -132,21 +132,17 @@ class EditActivity : AppCompatActivity() {
 
     private suspend fun observeUiEffects() {
         editViewModel.uiEffect
-            .collect {
-                when (it) {
-                    is SuccessEffect, is ResetEffect -> performPendingEditOperationSelections()
+            .collect { effect ->
+                when (effect) {
+                    is SuccessEffect, is ResetEffect -> {
+                        pendingEditOpSelected?.let {
+                            onEditOperationSelected(it)
+                            pendingEditOpSelected = null
+                        }
+                    }
                     is FailureEffect -> showSnackbar(R.string.error_operation_failed)
                 }
             }
-    }
-
-    private fun performPendingEditOperationSelections() {
-        pendingEditOpSelected?.let {
-            lastSelectedEditOperation = it
-            editViewModel.submitAction(SetActiveEditOperation(it))
-            onEditOperationSelected(it)
-            pendingEditOpSelected = null
-        }
     }
 
     private fun handleIntentUri() {
@@ -200,6 +196,8 @@ class EditActivity : AppCompatActivity() {
     }
 
     private fun onEditOperationSelected(editOperation: EditOperation) {
+        lastSelectedEditOperation = editOperation
+        editViewModel.submitAction(SetActiveEditOperation(editOperation))
         val navDestination = editOperationToFragmentId(editOperation)
         if (navController.currentDestination?.id == navDestination) {
             // already at the destination
