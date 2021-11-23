@@ -13,11 +13,8 @@
         android:background="@color/status_bar"
         android:elevation="4dp"
         android:minHeight="?attr/actionBarSize"
-        app:navigationIcon="@drawable/ic_rounded_filled_left_arrow"
-        android:theme="@style/ThemeOverlay.AppCompat.ActionBar"
         app:menu="@menu/edit_menu"
-        app:title="Edit"
-        app:popupTheme="@style/ThemeOverlay.AppCompat.Light" />
+        app:title="Edit" />
 
     <androidx.fragment.app.FragmentContainerView
         android:id="@+id/edit_action_fragment_container"
