@@ -8,6 +8,7 @@ import android.view.MotionEvent
 import android.view.View
 import androidx.core.graphics.toPoint
 import androidx.core.graphics.toPointF
+import androidx.core.graphics.toRectF
 import timber.log.Timber
 
 
@@ -29,13 +30,17 @@ class CropOverlay @JvmOverloads constructor(
 ) : View(context, attrs, defStyleAttr) {
     private val paint = Paint().apply {
         style = Paint.Style.STROKE
-        color = Color.RED
-        strokeWidth = 4f
+        isAntiAlias = true
+        color = Color.WHITE
+        strokeWidth = 5f
     }
     var initialBounds: Rect? = null
     private val lock = Object()
     private var currentCropBounds: Rect? = null
     var onCropBoundsChangedListener: OnCropBoundsChangedListener? = null
+    private val backgroundPaint = Paint().apply { color = 0x80000000.toInt() }
+    private var backgroundPath: Path = Path()
+    private var selectionPath: Path = Path()
 
     fun interface OnCropBoundsChangedListener {
         fun onBoundsChanged(cropBounds: Rect?)
@@ -74,13 +79,31 @@ class CropOverlay @JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
+        val cropBounds: RectF?
         synchronized(lock) {
-            val cropBounds = currentCropBounds
+            cropBounds = currentCropBounds?.toRectF()
+        }
+        selectionPath.apply {
+            reset()
+            fillType = Path.FillType.EVEN_ODD
+            cropBounds?.let { addRect(it, Path.Direction.CW) }
+        }
+        with(backgroundPath) {
+            reset()
+            fillType = Path.FillType.EVEN_ODD
+            initialBounds?.let { addRect(it.toRectF(), Path.Direction.CW) }
+            addPath(selectionPath)
+        }
+        canvas.drawPath(backgroundPath, backgroundPaint)
+        canvas.drawPath(selectionPath, paint)
+        /*initialBounds?.let { canvas.drawRect(it, backgroundPaint) }
+        synchronized(lock) {
+            cropBounds = currentCropBounds
             cropBounds?.let {
                 //Timber.d("Redrawing $it")
                 canvas.drawRect(it, paint)
             }
-        }
+        }*/
     }
 
     @SuppressLint("ClickableViewAccessibility")
