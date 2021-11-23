@@ -6,6 +6,7 @@ import android.view.MenuItem
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.annotation.IdRes
+import androidx.annotation.StringRes
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.net.toUri
@@ -22,6 +23,7 @@ import com.kshitijpatil.elementaryeditor.ui.edit.contract.*
 import com.kshitijpatil.elementaryeditor.ui.home.MainActivity
 import com.kshitijpatil.elementaryeditor.util.launchAndRepeatWithViewLifecycle
 import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -34,6 +36,26 @@ class EditActivity : AppCompatActivity() {
         EditViewModelFactory(this, applicationContext, null)
     }
 
+    // TODO: Persist this in bundle to survive configuration changes
+    private lateinit var lastSelectedEditOperation: EditOperation
+    private var pendingEditOpSelected: EditOperation? = null
+
+    private val saveChangesActionListener =
+        SaveChangesAlertBottomSheet.OnActionSelectedListener { action ->
+            when (action) {
+                ChangeAction.SAVE -> {
+                    editViewModel.submitAction(Confirm(applicationContext))
+                }
+                ChangeAction.DISCARD -> {
+                    editViewModel.submitAction(Cancel)
+                }
+                ChangeAction.CANCEL -> {
+                    binding.cgEditOptions.check(editOperationToChipId(lastSelectedEditOperation))
+                    pendingEditOpSelected = null
+                }
+            }
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         handleIntentUri()
@@ -45,6 +67,7 @@ class EditActivity : AppCompatActivity() {
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
         setupToolbar()
         restoreSelectedEditOperation()
+        lastSelectedEditOperation = chipIdToEditOperation(binding.cgEditOptions.checkedChipId)
         setupUiCallbacks()
         launchAndRepeatWithViewLifecycle {
             launch { observeForActionVisibility() }
@@ -58,8 +81,8 @@ class EditActivity : AppCompatActivity() {
             .map { Pair(it.forwardSteps, it.backwardSteps) }
             .stateIn(lifecycleScope)
             .collect { (forwardSteps, backwardSteps) ->
-                binding.toolbar.menu.findItem(R.id.menu_item_undo).isEnabled = backwardSteps != 0
-                binding.toolbar.menu.findItem(R.id.menu_item_redo).isEnabled = forwardSteps != 0
+                binding.toolbar.menu.findItem(R.id.menu_item_undo)?.isEnabled = backwardSteps != 0
+                binding.toolbar.menu.findItem(R.id.menu_item_redo)?.isEnabled = forwardSteps != 0
             }
     }
 
@@ -88,36 +111,16 @@ class EditActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
     }
 
-    private suspend fun observeUiEffects() {
-        editViewModel.uiEffect.collect { effect ->
-            when (effect) {
-                Crop.Failed -> {
-                    showSnackbar("Crop Failed")
-                }
-                Crop.Succeeded -> {
-                    showSnackbar("Crop Successful!")
-                }
-                else -> {
-                }
-            }
-        }
-    }
-
-    private fun showSnackbar(message: String) {
-        Snackbar.make(binding.root, message, Snackbar.LENGTH_SHORT).also {
-            it.anchorView = binding.scrollviewEditOptions
-        }.show()
-    }
-
     private fun setupUiCallbacks() {
-        binding.cgEditOptions.setOnCheckedChangeListener { _, checkedId ->
-            chipIdToEditOperation(checkedId)?.let {
-                editViewModel.submitAction(SetActiveEditOperation(it))
-                onEditOperationSelected(it)
-            }
+        binding.cgEditOptions.setOnCheckedChangeListener { group, checkedId ->
+            if (pendingEditOpSelected != null) return@setOnCheckedChangeListener
+            val imageModified = editViewModel.state.value.imageModified
+            val currentSelected = chipIdToEditOperation(checkedId)
+            if (imageModified) {
+                promptSaveChanges(currentSelected)
+            } else onEditOperationSelected(currentSelected)
         }
         binding.ivConfirm.setOnClickListener {
-            Timber.d("confirm clicked")
             editViewModel.submitAction(Confirm(applicationContext))
         }
         binding.ivCancel.setOnClickListener { editViewModel.submitAction(Cancel) }
@@ -126,6 +129,28 @@ class EditActivity : AppCompatActivity() {
     private fun restoreSelectedEditOperation() {
         val lastSelectedEditOperation = editViewModel.state.value.activeEditOperation
         onEditOperationSelected(lastSelectedEditOperation)
+    }
+
+    private suspend fun observeUiEffects() {
+        editViewModel.uiEffect
+            .filter { it is SuccessEffect || it is FailureEffect }
+            .collect {
+                when (it) {
+                    is SuccessEffect -> performPendingEditOperationSelections()
+                    is FailureEffect -> showSnackbar(R.string.error_operation_failed)
+                    else -> {
+                    }
+                }
+            }
+    }
+
+    private fun performPendingEditOperationSelections() {
+        pendingEditOpSelected?.let {
+            lastSelectedEditOperation = it
+            editViewModel.submitAction(SetActiveEditOperation(it))
+            onEditOperationSelected(it)
+            pendingEditOpSelected = null
+        }
     }
 
     private fun handleIntentUri() {
@@ -152,12 +177,30 @@ class EditActivity : AppCompatActivity() {
 
     private fun warnAndExit() {
         Timber.e("IllegalState: imageUri was null")
+        val appName = getString(R.string.app_name)
         Toast.makeText(
             this,
-            "Please share an Image accessible to Elementary Editor",
+            "Please share an Image accessible to $appName",
             Toast.LENGTH_SHORT
         ).show()
         finish()
+    }
+
+    private fun promptSaveChanges(currentSelected: EditOperation) {
+        pendingEditOpSelected = currentSelected
+        val bottomSheet = SaveChangesAlertBottomSheet(saveChangesActionListener)
+        bottomSheet.show(supportFragmentManager, bottomSheet.tag)
+    }
+
+    private fun showSnackbar(message: String) {
+        Snackbar.make(binding.root, message, Snackbar.LENGTH_SHORT).also {
+            it.anchorView = binding.scrollviewEditOptions
+        }.show()
+    }
+
+    private fun showSnackbar(@StringRes messageResId: Int) {
+        val message = getString(messageResId)
+        showSnackbar(message)
     }
 
     private fun onEditOperationSelected(editOperation: EditOperation) {
@@ -182,12 +225,20 @@ class EditActivity : AppCompatActivity() {
             EditOperation.ROTATE -> R.id.fragment_rotate
         }
     }
+}
 
-    private fun chipIdToEditOperation(@IdRes chipId: Int): EditOperation? {
-        return when (chipId) {
-            R.id.chip_crop -> EditOperation.CROP
-            R.id.chip_rotate -> EditOperation.ROTATE
-            else -> null
-        }
+private fun chipIdToEditOperation(@IdRes chipId: Int): EditOperation {
+    return when (chipId) {
+        R.id.chip_crop -> EditOperation.CROP
+        R.id.chip_rotate -> EditOperation.ROTATE
+        else -> EditOperation.CROP
+    }
+}
+
+@IdRes
+private fun editOperationToChipId(editOperation: EditOperation): Int {
+    return when (editOperation) {
+        EditOperation.CROP -> R.id.chip_crop
+        EditOperation.ROTATE -> R.id.chip_rotate
     }
 }

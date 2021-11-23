@@ -87,16 +87,17 @@ data class EditViewState(
 }
 
 sealed interface EditUiEffect
-
+sealed interface SuccessEffect
+sealed interface FailureEffect
 sealed class Crop : EditUiEffect {
-    object Succeeded : Crop()
-    object Failed : Crop()
+    object Succeeded : Crop(), SuccessEffect
+    object Failed : Crop(), FailureEffect
     object Reset : Crop()
 }
 
 sealed class Rotate : EditUiEffect {
-    object Succeeded : Rotate()
-    object Failed : Rotate()
+    object Succeeded : Rotate(), SuccessEffect
+    object Failed : Rotate(), FailureEffect
     object Reset : Rotate()
 }
 

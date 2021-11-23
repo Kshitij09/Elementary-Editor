@@ -63,6 +63,7 @@
             android:layout_gravity="center_horizontal"
             app:chipSpacingHorizontal="24dp"
             app:selectionRequired="true"
+            app:checkedChip="@id/chip_crop"
             app:singleSelection="true">
 
             <com.google.android.material.chip.Chip
@@ -70,7 +71,6 @@
                 style="@style/Widget.App.EditOptionsChip"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:checked="true"
                 android:text="@string/label_crop" />
 
             <com.google.android.material.chip.Chip
