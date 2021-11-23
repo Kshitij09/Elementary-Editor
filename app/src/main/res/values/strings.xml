@@ -14,4 +14,5 @@
     <string name="action_save">Save</string>
     <string name="action_discard">Discard</string>
     <string name="action_cancel">Cancel</string>
+    <string name="label_compare">Compare</string>
 </resources>

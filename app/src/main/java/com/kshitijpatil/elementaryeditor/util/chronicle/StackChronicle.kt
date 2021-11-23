@@ -46,7 +46,12 @@ class StackChronicle<T>(override val maxSteps: Int) : Chronicle<T> {
         return current!!
     }
 
-    override fun peekFirst() = undoStack.firstOrNull()
+    override fun peekFirst(): T {
+        check(undoStack.isNotEmpty()) {
+            "No History found"
+        }
+        return undoStack.first()
+    }
 
 
     /**

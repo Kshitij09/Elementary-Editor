@@ -13,6 +13,7 @@ object Cancel : EditAction
 object Undo : EditAction
 object Redo : EditAction
 object PeekFirst : EditAction
+object LoadLatest : EditAction
 data class SetCurrentImageUri(val imageUri: Uri, val context: Context) : EditAction
 data class SetActiveEditOperation(val operation: EditOperation) : EditAction
 

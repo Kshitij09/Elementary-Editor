@@ -124,6 +124,7 @@ class EditViewModel(
             InternalAction.PersistBitmapSkipped -> state
             Redo -> state
             PeekFirst -> state
+            LoadLatest -> state
             Undo -> state
         }
     }

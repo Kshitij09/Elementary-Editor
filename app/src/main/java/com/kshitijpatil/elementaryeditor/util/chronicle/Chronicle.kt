@@ -28,8 +28,10 @@ interface Chronicle<T> {
      */
     fun undo(): T
 
-    /** Returns first entry from the back stack (if available) */
-    fun peekFirst(): T?
+    /** Returns first entry from the back stack (if available)
+     * @throws IllegalStateException If this method was called with [backwardSteps] = 0
+     */
+    fun peekFirst(): T
 
     /** Advance one step future in the series of recorded states,
      * @throws IllegalStateException If this method was called with [forwardSteps] = 0

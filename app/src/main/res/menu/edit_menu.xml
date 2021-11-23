@@ -12,4 +12,9 @@
         android:icon="@drawable/ic_redo"
         android:title="@string/label_redo"
         app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/menu_item_compare"
+        android:icon="@drawable/ic_compare"
+        android:title="@string/label_compare"
+        app:showAsAction="ifRoom|collapseActionView" />
 </menu>

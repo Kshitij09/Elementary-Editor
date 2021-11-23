@@ -63,14 +63,14 @@ class BitmapChronicleMiddleware(
                         Timber.d("[After] BitmapChronicle=${bitmapChronicle.toList()}")
                     }
                     is PeekFirst -> {
-                        Timber.d("[Before] BitmapChronicle=${bitmapChronicle.toList()}")
                         emit(InternalAction.BitmapLoading)
-                        val current = state.value.currentBitmap
                         val firstState = bitmapChronicle.peekFirst()
                         emit(InternalAction.BitmapLoaded(firstState))
-                        kotlinx.coroutines.delay(500L)
-                        emit(InternalAction.BitmapLoaded(current))
-                        Timber.d("[After] BitmapChronicle=${bitmapChronicle.toList()}")
+
+                    }
+                    is LoadLatest -> {
+                        emit(InternalAction.BitmapLoading)
+                        emit(InternalAction.BitmapLoaded(bitmapChronicle.current))
                     }
                     else -> {
                     }

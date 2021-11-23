@@ -3,6 +3,8 @@ package com.kshitijpatil.elementaryeditor.ui.edit
 import android.os.Bundle
 import android.view.Menu
 import android.view.MenuItem
+import android.view.MotionEvent
+import android.view.View
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.annotation.IdRes
@@ -77,20 +79,49 @@ class EditActivity : AppCompatActivity() {
 
     private suspend fun observeForUndoRedoEnabled() {
         editViewModel.state
-            .map { Pair(it.forwardSteps, it.backwardSteps) }
+            .map { Pair(it.backwardSteps, it.forwardSteps) }
             .stateIn(lifecycleScope)
-            .collect { (forwardSteps, backwardSteps) ->
-                binding.toolbar.menu.findItem(R.id.menu_item_undo)?.isEnabled = backwardSteps != 0
-                binding.toolbar.menu.findItem(R.id.menu_item_redo)?.isEnabled = forwardSteps != 0
-            }
+            .collect { invalidateOptionsMenu() }
     }
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        val currentState = editViewModel.state.value
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
         menuInflater.inflate(R.menu.edit_menu, menu)
-        menu.findItem(R.id.menu_item_undo)?.isEnabled = currentState.backwardSteps != 0
-        menu.findItem(R.id.menu_item_redo)?.isEnabled = currentState.forwardSteps != 0
-        return true
+        val currentState = editViewModel.state.value
+        updateMenuItemVisibility(menu, currentState)
+        findViewById<View>(R.id.menu_item_compare)?.let { handleTouchEvents(it) }
+        return super.onCreateOptionsMenu(menu)
+    }
+
+    override fun onPrepareOptionsMenu(menu: Menu?): Boolean {
+        val currentState = editViewModel.state.value
+        menu?.let { updateMenuItemVisibility(menu, currentState) }
+        return super.onPrepareOptionsMenu(menu)
+    }
+
+    private fun updateMenuItemVisibility(menu: Menu?, currentState: EditViewState) {
+        menu?.findItem(R.id.menu_item_undo)?.isEnabled = currentState.backwardSteps != 0
+        menu?.findItem(R.id.menu_item_redo)?.isEnabled = currentState.forwardSteps != 0
+        menu?.findItem(R.id.menu_item_compare)?.isEnabled = currentState.backwardSteps != 0
+    }
+
+    private fun handleTouchEvents(actionView: View) {
+        actionView.setOnTouchListener { view, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> {
+                    editViewModel.submitAction(PeekFirst)
+                    view.isPressed = true
+                    view.performClick()
+                    true
+                }
+                MotionEvent.ACTION_UP -> {
+                    view.isPressed = false
+                    editViewModel.submitAction(LoadLatest)
+                    true
+                }
+                else -> false
+            }
+
+        }
     }
 
     override fun onOptionsItemSelected(item: MenuItem) = when (item.itemId) {
@@ -111,7 +142,7 @@ class EditActivity : AppCompatActivity() {
     }
 
     private fun setupUiCallbacks() {
-        binding.cgEditOptions.setOnCheckedChangeListener { group, checkedId ->
+        binding.cgEditOptions.setOnCheckedChangeListener { _, checkedId ->
             if (pendingEditOpSelected != null) return@setOnCheckedChangeListener
             val imageModified = editViewModel.state.value.imageModified
             val currentSelected = checkedId.toEditOperation()

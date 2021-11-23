@@ -43,7 +43,7 @@ class SynchronizedChronicle<T>(private val decorated: Chronicle<T>) : Chronicle<
         }
     }
 
-    override fun peekFirst(): T? {
+    override fun peekFirst(): T {
         return synchronized(lock) {
             decorated.peekFirst()
         }
