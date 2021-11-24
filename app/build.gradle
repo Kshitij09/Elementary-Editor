@@ -1,6 +1,7 @@
 plugins {
     id 'com.android.application'
     id 'kotlin-android'
+    id 'kotlin-kapt'
     id 'androidx.navigation.safeargs.kotlin'
 }
 
@@ -69,7 +70,7 @@ dependencies {
     implementation libs.glide
     implementation libs.moshi.moshi
     implementation libs.moshi.moshiAdapters
-    implementation libs.moshi.kotlinCodegen
+    kapt libs.moshi.kotlinCodegen
 
     testImplementation libs.junit
     testImplementation libs.truth

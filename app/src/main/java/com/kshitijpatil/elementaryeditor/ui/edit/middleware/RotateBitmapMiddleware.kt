@@ -1,7 +1,6 @@
 package com.kshitijpatil.elementaryeditor.ui.edit.middleware
 
 import com.bumptech.glide.Glide
-import com.kshitijpatil.elementaryeditor.data.EditOperation
 import com.kshitijpatil.elementaryeditor.data.EditPayload
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.EditAction
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.EditMiddleware
@@ -56,6 +55,6 @@ class RotateBitmapMiddleware : EditMiddleware {
     }
 
     private fun rotatePayloadFrom(rotationAngle: Float): EditPayload.Rotate {
-        return EditPayload.Rotate(EditOperation.ROTATE.name, rotationAngle)
+        return EditPayload.Rotate(rotationAngle)
     }
 }
