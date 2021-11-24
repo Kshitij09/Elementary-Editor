@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Rect
 import android.net.Uri
+import com.kshitijpatil.elementaryeditor.data.EditOperation
 import com.kshitijpatil.elementaryeditor.ui.common.ReduxViewModel
 
 
@@ -67,10 +68,6 @@ value class RotateState(
 ) {
     val modified: Boolean
         get() = rotationAngle != 0f
-}
-
-enum class EditOperation {
-    CROP, ROTATE
 }
 
 data class EditViewState(
