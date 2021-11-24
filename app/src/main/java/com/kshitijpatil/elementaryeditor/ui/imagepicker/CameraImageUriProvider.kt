@@ -13,7 +13,7 @@ open class CameraImageUriProvider(
     appContext: Context,
     private val tempFileUriProvider: TempFileUriProvider,
     private val registry: ActivityResultRegistry,
-    override val callback: OnImageUriCallback
+    override var callback: OnImageUriCallback?
 ) : ImageUriProvider() {
     open val hasCameraFeature by lazy {
         appContext.packageManager.hasSystemFeature(
@@ -27,14 +27,14 @@ open class CameraImageUriProvider(
         takePictureLauncher =
             registry.register(TAKE_PICTURE_LAUNCH_KEY, owner, TakePicture()) { succeed ->
                 val imageUri = if (succeed) latestTmpUri else null
-                callback.onImageUriReceived(imageUri)
+                callback?.onImageUriReceived(imageUri)
             }
     }
 
     override fun launch() {
         if (!hasCameraFeature) {
             Timber.e("Device doesn't support camera feature!")
-            callback.onImageUriReceived(null)
+            callback?.onImageUriReceived(null)
         }
         val tempFileUri = tempFileUriProvider.get()
         if (tempFileUri == null) {

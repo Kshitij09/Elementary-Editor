@@ -14,7 +14,7 @@ import androidx.lifecycle.LifecycleOwner
 class GalleryImageUriProvider(
     appContext: Context,
     private val registry: ActivityResultRegistry,
-    override val callback: OnImageUriCallback
+    override var callback: OnImageUriCallback?
 ) : ImageUriProvider() {
     private val hasReadExternalStoragePermission by lazy {
         ContextCompat.checkSelfPermission(
@@ -28,7 +28,7 @@ class GalleryImageUriProvider(
 
     override fun onCreate(owner: LifecycleOwner) {
         selectImageLauncher = registry.register(SELECT_IMAGE_LAUNCH_KEY, owner, GetContent()) {
-            callback.onImageUriReceived(it)
+            callback?.onImageUriReceived(it)
         }
         selectImageWithPermissionLauncher = registry.register(
             REQUEST_READ_EXTERNAL_STORAGE_LAUNCH_KEY,
