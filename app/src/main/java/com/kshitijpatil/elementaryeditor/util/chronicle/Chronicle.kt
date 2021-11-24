@@ -41,9 +41,6 @@ interface Chronicle<T> {
     /** Remove all the journal entries */
     fun reset()
 
-    /** Return the modifications journal as [List] in a order shown below
-     *
-     * ---- undo stack -- current -- redo stack ----
-     */
+    /** Return a List of backward states + current state (if not null) */
     fun toList(): List<T>
 }

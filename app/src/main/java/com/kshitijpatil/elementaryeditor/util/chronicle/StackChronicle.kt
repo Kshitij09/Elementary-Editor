@@ -75,7 +75,7 @@ class StackChronicle<T>(override val maxSteps: Int) : Chronicle<T> {
     override fun toList(): List<T> {
         val stateList = mutableListOf<T>()
         stateList.addAll(undoStack)
-        stateList.addAll(redoStack)
+        current?.let { stateList.add(it) }
         return stateList.toList()
     }
 }
