@@ -11,11 +11,12 @@ fun interface TempFileUriProvider {
     fun get(): Uri?
 }
 
-class DefaultTempFileUriProvider(context: Context) : TempFileUriProvider {
+class DefaultTempFileUriProvider(context: Context, private val prefix: String) :
+    TempFileUriProvider {
     private val contextRef = WeakReference(context)
     override fun get(): Uri? {
         val context = contextRef.get() ?: return null
-        val tmpFile = File.createTempFile("camera_capture", ".png", context.cacheDir).apply {
+        val tmpFile = File.createTempFile(prefix, ".png", context.cacheDir).apply {
             createNewFile()
             deleteOnExit()
         }

@@ -25,7 +25,7 @@ class MainActivity : AppCompatActivity(), OnImageUriCallback {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         AppCompatDelegate.setDefaultNightMode(AppCompatDelegate.MODE_NIGHT_YES)
-        tempFileUriProvider = DefaultTempFileUriProvider(applicationContext)
+        tempFileUriProvider = DefaultTempFileUriProvider(applicationContext, "camera_capture")
         galleryImageUriProvider = GalleryImageUriProvider(
             appContext = applicationContext,
             registry = activityResultRegistry,
