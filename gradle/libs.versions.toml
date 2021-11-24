@@ -48,6 +48,7 @@ retrofit-retrofit = { module = "com.squareup.retrofit2:retrofit", version.ref = 
 retrofit-converterMoshi = { module = "com.squareup.retrofit2:converter-moshi", version.ref = "retrofit" }
 
 moshi-moshi = { module = "com.squareup.moshi:moshi", version.ref = "moshi" }
+moshi-moshiAdapters = { module = "com.squareup.moshi:moshi-adapters", version.ref = "moshi" }
 moshi-kotlinCodegen = { module = "com.squareup.moshi:moshi-kotlin-codegen", version.ref = "moshi" }
 
 androidx-fragment-fragment = { module = "androidx.fragment:fragment", version.ref = "androidx-fragment" }

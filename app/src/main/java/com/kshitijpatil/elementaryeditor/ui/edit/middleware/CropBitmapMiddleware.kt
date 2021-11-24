@@ -1,6 +1,7 @@
 package com.kshitijpatil.elementaryeditor.ui.edit.middleware
 
 import com.bumptech.glide.Glide
+import com.kshitijpatil.elementaryeditor.data.toCropPayload
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.EditAction
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.EditMiddleware
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.EditViewState
@@ -51,13 +52,14 @@ class CropBitmapMiddleware : EditMiddleware {
                     send(InternalAction.Cropping)
                     val viewWidth = imageBounds.width()
                     val viewHeight = imageBounds.height()
+                    val cropOffsetBounds = toOffsetBounds(imageBounds, cropBounds)
                     val cropJob = launch(Dispatchers.Default) {
                         val glideTarget = Glide.with(context)
                             .asBitmap()
                             .load(bitmap)
                             .transform(
                                 OffsetCropTransformation(
-                                    cropBounds = toOffsetBounds(imageBounds, cropBounds),
+                                    cropBounds = cropOffsetBounds,
                                     viewWidth = viewWidth,
                                     viewHeight = viewHeight
                                 )
@@ -68,7 +70,12 @@ class CropBitmapMiddleware : EditMiddleware {
                         // emitting a signal to modify the same
                         //state.first { it.bitmapPersisted }
                         send(InternalAction.CropSucceeded(cropped))
-                        send(InternalAction.PersistBitmap(cropped))
+                        send(
+                            InternalAction.PersistBitmap(
+                                cropped,
+                                cropOffsetBounds.toCropPayload()
+                            )
+                        )
                     }
                     cropJob.invokeOnCompletion {
                         it?.let {

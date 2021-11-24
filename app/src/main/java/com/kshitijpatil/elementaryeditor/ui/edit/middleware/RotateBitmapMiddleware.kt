@@ -1,6 +1,8 @@
 package com.kshitijpatil.elementaryeditor.ui.edit.middleware
 
 import com.bumptech.glide.Glide
+import com.kshitijpatil.elementaryeditor.data.EditOperation
+import com.kshitijpatil.elementaryeditor.data.EditPayload
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.EditAction
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.EditMiddleware
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.EditViewState
@@ -41,10 +43,19 @@ class RotateBitmapMiddleware : EditMiddleware {
 
                         val rotated = glideTarget.get()
                         send(InternalAction.RotateSucceeded(rotated))
-                        send(InternalAction.PersistBitmap(rotated))
+                        send(
+                            InternalAction.PersistBitmap(
+                                rotated,
+                                rotatePayloadFrom(rotationAngle)
+                            )
+                        )
                     }
                     awaitClose { rotateJob.cancel() }
                 }
             }
+    }
+
+    private fun rotatePayloadFrom(rotationAngle: Float): EditPayload.Rotate {
+        return EditPayload.Rotate(EditOperation.ROTATE.name, rotationAngle)
     }
 }

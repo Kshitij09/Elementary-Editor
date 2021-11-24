@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.Rect
 import android.net.Uri
 import com.kshitijpatil.elementaryeditor.data.EditOperation
+import com.kshitijpatil.elementaryeditor.data.EditPayload
 import com.kshitijpatil.elementaryeditor.ui.common.ReduxViewModel
 
 
@@ -13,6 +14,7 @@ data class Confirm(val context: Context) : EditAction
 object Cancel : EditAction
 object Undo : EditAction
 object Redo : EditAction
+object Save : EditAction
 object PeekFirst : EditAction
 object LoadLatest : EditAction
 data class SetCurrentImageUri(val imageUri: Uri, val context: Context) : EditAction
@@ -39,7 +41,11 @@ sealed class InternalAction : EditAction {
         data class Rotate(override val context: Context) : MutatingAction()
     }
 
-    data class PersistBitmap(val bitmap: Bitmap) : InternalAction()
+    data class PersistBitmap(
+        val bitmap: Bitmap,
+        val editPayload: EditPayload? = null
+    ) : InternalAction()
+
     object Cropping : InternalAction()
     object BitmapLoading : InternalAction()
     object PersistBitmapSkipped : InternalAction()

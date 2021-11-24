@@ -67,6 +67,9 @@ dependencies {
     implementation libs.timber
     implementation libs.phonemoji
     implementation libs.glide
+    implementation libs.moshi.moshi
+    implementation libs.moshi.moshiAdapters
+    implementation libs.moshi.kotlinCodegen
 
     testImplementation libs.junit
     testImplementation libs.truth

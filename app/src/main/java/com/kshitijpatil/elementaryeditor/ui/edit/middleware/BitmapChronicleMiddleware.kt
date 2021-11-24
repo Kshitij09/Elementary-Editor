@@ -1,6 +1,7 @@
 package com.kshitijpatil.elementaryeditor.ui.edit.middleware
 
 import android.graphics.Bitmap
+import com.kshitijpatil.elementaryeditor.data.EditPayload
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.*
 import com.kshitijpatil.elementaryeditor.util.chronicle.Chronicle
 import kotlinx.coroutines.flow.Flow
@@ -10,7 +11,7 @@ import kotlinx.coroutines.flow.flow
 import timber.log.Timber
 
 class BitmapChronicleMiddleware(
-    private val bitmapChronicle: Chronicle<Bitmap>
+    private val bitmapChronicle: Chronicle<Pair<Bitmap, EditPayload?>>
 ) : EditMiddleware {
     override fun bind(
         actions: Flow<EditAction>,
@@ -22,25 +23,20 @@ class BitmapChronicleMiddleware(
                     // persist current bitmap in the chronicle
                     is InternalAction.PersistBitmap -> {
                         Timber.d("[Before] BitmapChronicle=${bitmapChronicle.toList()}")
-                        val chronicleCurrentEntry = bitmapChronicle.current
-                        bitmapChronicle.add(action.bitmap)
+                        bitmapChronicle.add(Pair(action.bitmap, action.editPayload))
                         emit(
                             InternalAction.StepsCountUpdated(
                                 bitmapChronicle.forwardSteps,
                                 bitmapChronicle.backwardSteps
                             )
                         )
-                        /*if (chronicleCurrentEntry != action.bitmap) {
-                        } else {
-                            emit(InternalAction.PersistBitmapSkipped)
-                        }*/
                         Timber.d("[After] BitmapChronicle=${bitmapChronicle.toList()}")
                     }
                     is Undo -> {
                         Timber.d("[Before] BitmapChronicle=${bitmapChronicle.toList()}")
                         emit(InternalAction.BitmapLoading)
                         val previousState = bitmapChronicle.undo()
-                        emit(InternalAction.BitmapLoaded(previousState))
+                        emit(InternalAction.BitmapLoaded(previousState.first))
                         emit(
                             InternalAction.StepsCountUpdated(
                                 bitmapChronicle.forwardSteps,
@@ -53,7 +49,7 @@ class BitmapChronicleMiddleware(
                         Timber.d("[Before] BitmapChronicle=${bitmapChronicle.toList()}")
                         emit(InternalAction.BitmapLoading)
                         val futureState = bitmapChronicle.redo()
-                        emit(InternalAction.BitmapLoaded(futureState))
+                        emit(InternalAction.BitmapLoaded(futureState.first))
                         emit(
                             InternalAction.StepsCountUpdated(
                                 bitmapChronicle.forwardSteps,
@@ -65,12 +61,12 @@ class BitmapChronicleMiddleware(
                     is PeekFirst -> {
                         emit(InternalAction.BitmapLoading)
                         val firstState = bitmapChronicle.peekFirst()
-                        emit(InternalAction.BitmapLoaded(firstState))
+                        emit(InternalAction.BitmapLoaded(firstState.first))
 
                     }
                     is LoadLatest -> {
                         emit(InternalAction.BitmapLoading)
-                        emit(InternalAction.BitmapLoaded(bitmapChronicle.current))
+                        emit(InternalAction.BitmapLoaded(bitmapChronicle.current?.first))
                     }
                     else -> {
                     }

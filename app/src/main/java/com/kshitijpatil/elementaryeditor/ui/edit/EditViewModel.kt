@@ -6,6 +6,7 @@ import android.graphics.Rect
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.kshitijpatil.elementaryeditor.data.EditOperation
+import com.kshitijpatil.elementaryeditor.data.EditPayload
 import com.kshitijpatil.elementaryeditor.ui.common.LoggingMiddleware
 import com.kshitijpatil.elementaryeditor.ui.common.ReduxViewModel
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.*
@@ -32,7 +33,7 @@ class EditViewModel(
 ) : ReduxViewModel<EditViewState, EditAction>(initialState) {
     // TODO: Fetch this from BuildConfig
     private val maxUndoStackSize: Int = 10
-    private val bitmapChronicle: Chronicle<Bitmap> = createChronicle(
+    private val bitmapChronicle: Chronicle<Pair<Bitmap, EditPayload?>> = createChronicle(
         maxSize = maxUndoStackSize,
         threadSafe = true
     )
