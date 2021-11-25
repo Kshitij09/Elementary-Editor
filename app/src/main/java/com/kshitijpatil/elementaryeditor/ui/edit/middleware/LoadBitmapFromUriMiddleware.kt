@@ -9,9 +9,8 @@ import com.kshitijpatil.elementaryeditor.ui.edit.contract.EditViewState
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.InternalAction
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.SetCurrentImageUri
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class LoadBitmapFromUriMiddleware(
     private val sizeMultiplier: Float = 0.1f
@@ -25,13 +24,10 @@ class LoadBitmapFromUriMiddleware(
             .map(::toGlideTarget)
             .flatMapLatest { glideTarget ->
                 channelFlow {
-                    val loadBitmapJob = launch(Dispatchers.Default) {
+                    withContext(Dispatchers.Default) {
                         val bitmap = glideTarget.get()
                         send(InternalAction.BitmapLoaded(bitmap))
                         send(InternalAction.PersistBitmap(bitmap))
-                    }
-                    awaitClose {
-                        loadBitmapJob.cancel()
                     }
                 }
             }

@@ -88,7 +88,7 @@ class OffsetCropTransformation(
 
     override fun updateDiskCacheKey(messageDigest: MessageDigest) {
         messageDigest.update(ID_BYTES)
-        val cropData = ByteBuffer.allocate(244)
+        val cropData = ByteBuffer.allocate(24)
             .putInt(cropBounds.offsetX)
             .putInt(cropBounds.offsetY)
             .putInt(cropBounds.height)

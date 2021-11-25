@@ -9,7 +9,6 @@ import com.kshitijpatil.elementaryeditor.ui.edit.contract.InternalAction
 import com.kshitijpatil.elementaryeditor.util.glide.OffsetCropTransformation
 import com.kshitijpatil.elementaryeditor.util.toOffsetBounds
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -31,7 +30,6 @@ class CropBitmapMiddleware : EditMiddleware {
                     if (bitmap == null) {
                         Timber.e("$TAG: Current Bitmap is null, returning...")
                         send(InternalAction.CropFailed)
-                        close()
                         return@channelFlow
                     }
 
@@ -39,14 +37,12 @@ class CropBitmapMiddleware : EditMiddleware {
                     if (imageBounds == null) {
                         Timber.e("$TAG: Image Bounds were not set, skipping...")
                         send(InternalAction.CropFailed)
-                        close()
                         return@channelFlow
                     }
                     val cropBounds = currentState.cropState.cropBounds
                     if (cropBounds == null) {
                         Timber.e("$TAG: Crop Bounds were not set, skipping...")
                         send(InternalAction.CropFailed)
-                        close()
                         return@channelFlow
                     }
                     send(InternalAction.Cropping)
@@ -82,7 +78,6 @@ class CropBitmapMiddleware : EditMiddleware {
                             trySend(InternalAction.CropFailed)
                         }
                     }
-                    awaitClose { cropJob.cancel() }
                 }
             }
     }

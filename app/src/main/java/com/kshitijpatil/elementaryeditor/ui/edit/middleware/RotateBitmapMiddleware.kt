@@ -8,7 +8,6 @@ import com.kshitijpatil.elementaryeditor.ui.edit.contract.EditViewState
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.InternalAction
 import com.kshitijpatil.elementaryeditor.util.glide.RotateTransformation
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import timber.log.Timber
@@ -28,7 +27,6 @@ class RotateBitmapMiddleware : EditMiddleware {
                     if (bitmap == null) {
                         Timber.e("Current Bitmap is null, returning...")
                         send(InternalAction.RotateFailed)
-                        close()
                     }
                     send(InternalAction.BitmapLoading)
                     val rotationAngle = currentState.rotateState.rotationAngle
@@ -49,7 +47,6 @@ class RotateBitmapMiddleware : EditMiddleware {
                             )
                         )
                     }
-                    awaitClose { rotateJob.cancel() }
                 }
             }
     }
