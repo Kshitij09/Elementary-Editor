@@ -15,11 +15,8 @@ class RotateTransformation(private val rotationAngle: Float) : BitmapTransformat
         outWidth: Int,
         outHeight: Int
     ): Bitmap {
-        //val source = pool.get(toTransform.width, toTransform.height, toTransform.config)
-        //val canvas = Canvas(source)
         val rotationMatrix = Matrix()
         rotationMatrix.postRotate(rotationAngle)
-        //canvas.drawBitmap(toTransform, rotationMatrix, null)
         return Bitmap.createBitmap(
             toTransform,
             0,

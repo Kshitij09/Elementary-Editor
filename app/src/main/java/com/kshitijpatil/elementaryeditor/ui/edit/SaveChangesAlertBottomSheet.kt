@@ -7,8 +7,9 @@ import android.view.ViewGroup
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.kshitijpatil.elementaryeditor.databinding.BottomSheetSaveChangesAlertBinding
 
-class SaveChangesAlertBottomSheet(var onActionSelectedListener: OnActionSelectedListener? = null) :
-    BottomSheetDialogFragment() {
+class SaveChangesAlertBottomSheet(
+    var onActionSelectedListener: OnActionSelectedListener? = null
+) : BottomSheetDialogFragment() {
     private var _binding: BottomSheetSaveChangesAlertBinding? = null
     private val binding: BottomSheetSaveChangesAlertBinding get() = _binding!!
 

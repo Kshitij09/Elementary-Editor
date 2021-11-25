@@ -28,6 +28,7 @@ class EditViewModelFactory(
         val context = contextRef.get()
             ?: throw IllegalStateException("No Context available to initialize the ViewModel")
         if (modelClass.isAssignableFrom(EditViewModel::class.java)) {
+            // TODO: Turn key as a constant
             val editOperationIndex = handle.get<Int>("active-edit-operation") ?: 0
             val activeEditOperation = editOperationValues[editOperationIndex]
             val initialState = EditViewState(activeEditOperation)

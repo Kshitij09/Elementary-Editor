@@ -18,7 +18,6 @@ import com.kshitijpatil.elementaryeditor.util.glide.RotateTransformation
 import com.squareup.moshi.JsonAdapter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
 import java.util.*
@@ -43,7 +42,6 @@ class EditImageWorker(
                 editPayloadListJsonAdapter.fromJson(inputData.editPayloadJson)
             }.getOrNull()
         } ?: return Result.failure()
-        Timber.d("[CROP_ISSUE] Received payloads: $editPayloads")
         val glideTransforms = editPayloads
             .map(::payloadToGlideTransform)
             .toTypedArray()

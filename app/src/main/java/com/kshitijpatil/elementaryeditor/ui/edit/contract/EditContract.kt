@@ -9,7 +9,7 @@ import com.kshitijpatil.elementaryeditor.data.EditPayload
 import com.kshitijpatil.elementaryeditor.ui.common.ReduxViewModel
 import java.util.*
 
-
+// TODO: Enclose all the objects withing Interface body
 sealed interface EditAction
 data class Confirm(val context: Context) : EditAction
 object Cancel : EditAction

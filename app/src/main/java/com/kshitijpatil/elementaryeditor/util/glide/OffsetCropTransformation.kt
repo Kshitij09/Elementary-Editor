@@ -8,7 +8,6 @@ import androidx.core.graphics.toRect
 import com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool
 import com.bumptech.glide.load.resource.bitmap.BitmapTransformation
 import com.kshitijpatil.elementaryeditor.util.Bound
-import timber.log.Timber
 import java.nio.ByteBuffer
 import java.nio.charset.Charset
 import java.security.MessageDigest
@@ -36,15 +35,12 @@ class OffsetCropTransformation(
     ): Bitmap {
         val (offsetX, offsetY, width, height) = cropBounds
         val config = toTransform.config ?: Bitmap.Config.ARGB_8888
-        Timber.v("[OffsetCropTransform] Received: ($offsetX, $offsetY, $width, $height)")
-        Timber.v("[OffsetCropTransform] Image Dimensions (${toTransform.width}, ${toTransform.height})")
         val scaleX = toTransform.width / viewWidth.toFloat()
         val scaleY = toTransform.height / viewHeight.toFloat()
         val scaledOffsetX = offsetX * scaleX
         val scaledOffsetY = offsetY * scaleY
         val scaledWidth = width * scaleX
         val scaledHeight = height * scaleY
-        Timber.v("[OffsetCropTransform] Scaled: ($scaledOffsetX, $scaledOffsetY, $scaledWidth, $scaledHeight)")
         val bitmap = pool.get(scaledWidth.toInt(), scaledHeight.toInt(), config)
         bitmap.density = toTransform.density
         bitmap.setHasAlpha(true)
@@ -59,23 +55,6 @@ class OffsetCropTransformation(
             drawBitmap(toTransform, sourceRect, targetRect, paint)
         }
         canvas.setBitmap(null)
-
-        /*val bitmapBounds = Rect(0,0,toTransform.width,toTransform.height).toRectF()
-
-        setCanvasBitmapDensity(toTransform, bitmap)
-        val canvas = Canvas(bitmap)
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-        canvas.drawRect(sourceRect, paint)
-        paint.xfermode = PorterDuffXfermode(PorterDuff.Mode.SRC_IN)
-        canvas.drawBitmap(toTransform, 0f, 0f, paint)
-
-        return Bitmap.createBitmap(
-            toTransform,
-            scaledOffsetX.toInt(),
-            scaledOffsetY.toInt(),
-            scaledWidth.toInt(),
-            scaledHeight.toInt()
-        )*/
 
         return bitmap
     }

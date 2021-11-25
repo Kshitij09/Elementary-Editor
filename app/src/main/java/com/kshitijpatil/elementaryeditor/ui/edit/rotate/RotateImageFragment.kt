@@ -1,26 +1,14 @@
-package com.kshitijpatil.elementaryeditor
+package com.kshitijpatil.elementaryeditor.ui.edit.rotate
 
-import android.Manifest
-import android.content.ContentResolver
-import android.content.ContentValues
-import android.graphics.Bitmap
-import android.net.Uri
-import android.os.Build
 import android.os.Bundle
-import android.provider.MediaStore
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.animation.RotateAnimation
 import android.widget.ImageView
-import androidx.activity.result.ActivityResultLauncher
-import androidx.activity.result.ActivityResultRegistry
-import androidx.activity.result.contract.ActivityResultContracts.RequestPermission
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.activityViewModels
-import androidx.lifecycle.DefaultLifecycleObserver
-import androidx.lifecycle.LifecycleOwner
 import com.kshitijpatil.elementaryeditor.databinding.FragmentRotateImageBinding
 import com.kshitijpatil.elementaryeditor.ui.edit.EditViewModel
 import com.kshitijpatil.elementaryeditor.ui.edit.EditViewModelFactory
@@ -34,88 +22,19 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import timber.log.Timber
 import kotlin.math.absoluteValue
-
-class ImageSaver(
-    private val registry: ActivityResultRegistry,
-    private val resolver: ContentResolver
-) : DefaultLifecycleObserver {
-    companion object {
-        const val REQUEST_STORAGE_PERMISSION_KEY =
-            "com.kshitijpatil.elementaryeditor.REQUEST_STORAGE_PERMISSION_KEY"
-    }
-
-    lateinit var requestPermissionLauncher: ActivityResultLauncher<String>
-    private var targetBitmap: Bitmap? = null
-
-    override fun onCreate(owner: LifecycleOwner) {
-        requestPermissionLauncher =
-            registry.register(REQUEST_STORAGE_PERMISSION_KEY, owner, RequestPermission()) {
-                saveToImageCollection()
-            }
-    }
-
-    private fun saveToImageCollection() {
-        val data = targetBitmap
-        if (data != null) {
-            val photosCollection = getPhotosCollection()
-            val imageDetails = ContentValues().apply {
-                put(MediaStore.Images.Media.DISPLAY_NAME, "test-rotation-image.png")
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    put(MediaStore.Images.Media.IS_PENDING, 1)
-                }
-            }
-
-            resolver.insert(photosCollection, imageDetails)?.let { imageUri ->
-                resolver.openOutputStream(imageUri, "w").use {
-                    data.compress(Bitmap.CompressFormat.JPEG, 100, it)
-                }
-
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                    imageDetails.clear()
-                    imageDetails.put(MediaStore.Images.Media.IS_PENDING, 0)
-                    resolver.update(imageUri, imageDetails, null, null)
-                    targetBitmap = null
-                }
-            }
-        } else {
-            Timber.e("Incorrect save-bitmap call, nothing to save")
-        }
-    }
-
-    fun saveImage(bitmap: Bitmap) {
-        targetBitmap = bitmap
-        if (Build.VERSION.SDK_INT <= Build.VERSION_CODES.P) {
-            requestPermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-        } else {
-            saveToImageCollection()
-        }
-    }
-
-    private fun getPhotosCollection(): Uri {
-        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            MediaStore.Images.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
-        } else {
-            MediaStore.Images.Media.EXTERNAL_CONTENT_URI
-        }
-    }
-
-    override fun onDestroy(owner: LifecycleOwner) {
-        // don't leak any references
-        targetBitmap = null
-    }
-}
 
 class RotateImageFragment : Fragment() {
     private var _binding: FragmentRotateImageBinding? = null
+
+    // TODO: Handle configuration changes
+    private var currentRotation = 0f
 
     // only valid through onCreateView to onDestroyView
     private val binding: FragmentRotateImageBinding get() = _binding!!
     private val editViewModel: EditViewModel by activityViewModels {
         EditViewModelFactory(requireActivity(), requireContext(), arguments)
     }
-    private lateinit var imageSaver: ImageSaver
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -130,19 +49,6 @@ class RotateImageFragment : Fragment() {
 
         return binding.root
     }
-
-
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        imageSaver = ImageSaver(
-            registry = requireActivity().activityResultRegistry,
-            resolver = requireContext().contentResolver
-        )
-        lifecycle.addObserver(imageSaver)
-    }
-
-    private var currentRotation = 0f
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -179,17 +85,12 @@ class RotateImageFragment : Fragment() {
     private suspend fun observeRotateUiEffect() {
         editViewModel.uiEffect
             .filter { it is Rotate }
-            .collect {
-                Timber.d("Resetting...")
-                resetCurrentPreview()
-            }
+            .collect { resetCurrentPreview() }
     }
 
     private fun resetCurrentPreview() {
-        //binding.imgPreview.animateResetRotation(currentRotation)
         binding.imgPreview.clearAnimation()
         currentRotation = 0f
-        //Timber.d("Current rotation=$currentRotation")
     }
 
     /**
@@ -200,7 +101,6 @@ class RotateImageFragment : Fragment() {
         val fromRotation = resetIf360(currentRotation)
         val rotateDegrees = if (clockwise) 90f else -90f
         val toRotation = (fromRotation + rotateDegrees) % 450f
-        Timber.d("Rotating from $fromRotation to $toRotation")
         val rotateAnimation = getRotateAnimation(fromRotation, toRotation)
         startAnimation(rotateAnimation)
         return toRotation

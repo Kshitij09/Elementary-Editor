@@ -9,7 +9,6 @@ import android.view.View
 import androidx.core.graphics.toPoint
 import androidx.core.graphics.toPointF
 import androidx.core.graphics.toRectF
-import timber.log.Timber
 
 
 enum class Edge {
@@ -34,6 +33,8 @@ class CropOverlay @JvmOverloads constructor(
         color = Color.WHITE
         strokeWidth = 5f
     }
+
+    // TODO: Handle configuration changes
     var initialBounds: Rect? = null
     private val lock = Object()
     private var currentCropBounds: Rect? = null
@@ -56,21 +57,6 @@ class CropOverlay @JvmOverloads constructor(
         initialBounds = Rect(rect.left, rect.top, rect.right, rect.bottom)
         currentCropBounds = Rect(rect.left, rect.top, rect.right, rect.bottom)
         invalidate()
-    }
-
-    /**
-     * @return [IntArray] crop region coordinates in
-     *  the (offsetX, offsetY, width, height) order. If the [initialBounds]
-     *  or [currentCropBounds] are not initialized, the method will return null.
-     */
-    fun getCropBounds(): IntArray? {
-        val initial = initialBounds ?: return null
-        val altered = currentCropBounds ?: return null
-        val offsetX = altered.left - initial.left
-        val offsetY = altered.top - initial.top
-        val width = altered.right - altered.left
-        val height = altered.bottom - altered.top
-        return intArrayOf(offsetX, offsetY, width, height)
     }
 
     /** Allows [onTouchEvent] to consume events offset by this value from the [currentCropBounds] */
@@ -96,14 +82,6 @@ class CropOverlay @JvmOverloads constructor(
         }
         canvas.drawPath(backgroundPath, backgroundPaint)
         canvas.drawPath(selectionPath, paint)
-        /*initialBounds?.let { canvas.drawRect(it, backgroundPaint) }
-        synchronized(lock) {
-            cropBounds = currentCropBounds
-            cropBounds?.let {
-                //Timber.d("Redrawing $it")
-                canvas.drawRect(it, paint)
-            }
-        }*/
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -164,7 +142,6 @@ class CropOverlay @JvmOverloads constructor(
     }
 
     fun reset() {
-        Timber.d("Resetting")
         synchronized(lock) {
             val initial = initialBounds ?: return@synchronized
             currentCropBounds?.set(initial)

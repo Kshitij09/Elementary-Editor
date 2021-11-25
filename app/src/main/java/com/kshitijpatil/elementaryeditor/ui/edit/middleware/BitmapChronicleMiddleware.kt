@@ -8,7 +8,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flow
-import timber.log.Timber
 
 class BitmapChronicleMiddleware(
     private val bitmapChronicle: Chronicle<Pair<Bitmap, EditPayload?>>
@@ -22,7 +21,6 @@ class BitmapChronicleMiddleware(
                 when (action) {
                     // persist current bitmap in the chronicle
                     is InternalAction.PersistBitmap -> {
-                        Timber.d("[Before] BitmapChronicle=${bitmapChronicle.toList()}")
                         bitmapChronicle.add(Pair(action.bitmap, action.editPayload))
                         emit(
                             InternalAction.StepsCountUpdated(
@@ -30,10 +28,8 @@ class BitmapChronicleMiddleware(
                                 bitmapChronicle.backwardSteps
                             )
                         )
-                        Timber.d("[After] BitmapChronicle=${bitmapChronicle.toList()}")
                     }
                     is Undo -> {
-                        Timber.d("[Before] BitmapChronicle=${bitmapChronicle.toList()}")
                         emit(InternalAction.BitmapLoading)
                         val previousState = bitmapChronicle.undo()
                         emit(InternalAction.BitmapLoaded(previousState.first))
@@ -43,10 +39,8 @@ class BitmapChronicleMiddleware(
                                 bitmapChronicle.backwardSteps
                             )
                         )
-                        Timber.d("[After] BitmapChronicle=${bitmapChronicle.toList()}")
                     }
                     is Redo -> {
-                        Timber.d("[Before] BitmapChronicle=${bitmapChronicle.toList()}")
                         emit(InternalAction.BitmapLoading)
                         val futureState = bitmapChronicle.redo()
                         emit(InternalAction.BitmapLoaded(futureState.first))
@@ -56,7 +50,6 @@ class BitmapChronicleMiddleware(
                                 bitmapChronicle.backwardSteps
                             )
                         )
-                        Timber.d("[After] BitmapChronicle=${bitmapChronicle.toList()}")
                     }
                     is PeekFirst -> {
                         emit(InternalAction.BitmapLoading)

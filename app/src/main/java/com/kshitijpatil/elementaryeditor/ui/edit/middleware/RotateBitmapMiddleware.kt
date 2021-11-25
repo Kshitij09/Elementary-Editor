@@ -9,7 +9,7 @@ import com.kshitijpatil.elementaryeditor.ui.edit.contract.InternalAction
 import com.kshitijpatil.elementaryeditor.util.glide.RotateTransformation
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
 
 class RotateBitmapMiddleware : EditMiddleware {
@@ -31,7 +31,7 @@ class RotateBitmapMiddleware : EditMiddleware {
                     send(InternalAction.BitmapLoading)
                     val rotationAngle = currentState.rotateState.rotationAngle
                     Timber.d("Rotating bitmap by $rotationAngle degrees")
-                    val rotateJob = launch(Dispatchers.Default) {
+                    withContext(Dispatchers.Default) {
                         val glideTarget = Glide.with(action.context)
                             .asBitmap()
                             .load(bitmap)

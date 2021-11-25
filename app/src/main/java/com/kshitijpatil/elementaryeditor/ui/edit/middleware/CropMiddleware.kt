@@ -1,6 +1,5 @@
 package com.kshitijpatil.elementaryeditor.ui.edit.middleware
 
-import android.graphics.Rect
 import androidx.lifecycle.asFlow
 import androidx.work.Data
 import androidx.work.WorkInfo
@@ -12,6 +11,7 @@ import com.kshitijpatil.elementaryeditor.ui.edit.contract.EditViewState
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.InternalAction
 import com.kshitijpatil.elementaryeditor.util.takeWhileFinished
 import com.kshitijpatil.elementaryeditor.util.tapNullWithTimber
+import com.kshitijpatil.elementaryeditor.util.toOffsetBounds
 import com.kshitijpatil.elementaryeditor.util.workRequest
 import com.kshitijpatil.elementaryeditor.worker.EditImageWorker
 import com.kshitijpatil.elementaryeditor.worker.WorkerConstants
@@ -81,18 +81,5 @@ class CropMiddleware(private val workManager: WorkManager) : EditMiddleware {
             WorkerConstants.KEY_VIEW_WIDTH to viewWidth,
             WorkerConstants.KEY_VIEW_HEIGHT to viewHeight
         )
-    }
-
-    /**
-     * @return [IntArray] crop region coordinates in
-     *  the (offsetX, offsetY, width, height) order. If the [initialBounds]
-     *  or [currentBounds] are not initialized, the method will return null.
-     */
-    private fun toOffsetBounds(initialBounds: Rect, currentBounds: Rect): IntArray {
-        val offsetX = currentBounds.left - initialBounds.left
-        val offsetY = currentBounds.top - initialBounds.top
-        val width = currentBounds.right - currentBounds.left
-        val height = currentBounds.bottom - currentBounds.top
-        return intArrayOf(offsetX, offsetY, width, height)
     }
 }

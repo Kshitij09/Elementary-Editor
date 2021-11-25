@@ -46,7 +46,7 @@ class ExportMiddleware(
                     val viewWidth = imageBounds.width()
                     val viewHeight = imageBounds.height()
                     send(InternalAction.Exporting)
-                    val editPayloadJson = withContext(Dispatchers.IO) {
+                    val editPayloadJson = withContext(Dispatchers.Default) {
                         runCatching {
                             val outstandingPayloads =
                                 bitmapChronicle.toList().mapNotNull { it.second }
