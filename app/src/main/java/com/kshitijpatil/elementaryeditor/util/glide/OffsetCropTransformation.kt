@@ -8,6 +8,8 @@ import androidx.core.graphics.toRect
 import com.bumptech.glide.load.engine.bitmap_recycle.BitmapPool
 import com.bumptech.glide.load.resource.bitmap.BitmapTransformation
 import com.kshitijpatil.elementaryeditor.util.Bound
+import timber.log.Timber
+import java.nio.ByteBuffer
 import java.nio.charset.Charset
 import java.security.MessageDigest
 
@@ -32,17 +34,17 @@ class OffsetCropTransformation(
         outWidth: Int,
         outHeight: Int
     ): Bitmap {
-
         val (offsetX, offsetY, width, height) = cropBounds
         val config = toTransform.config ?: Bitmap.Config.ARGB_8888
-
+        Timber.v("[OffsetCropTransform] Received: ($offsetX, $offsetY, $width, $height)")
+        Timber.v("[OffsetCropTransform] Image Dimensions (${toTransform.width}, ${toTransform.height})")
         val scaleX = toTransform.width / viewWidth.toFloat()
         val scaleY = toTransform.height / viewHeight.toFloat()
         val scaledOffsetX = offsetX * scaleX
         val scaledOffsetY = offsetY * scaleY
         val scaledWidth = width * scaleX
         val scaledHeight = height * scaleY
-
+        Timber.v("[OffsetCropTransform] Scaled: ($scaledOffsetX, $scaledOffsetY, $scaledWidth, $scaledHeight)")
         val bitmap = pool.get(scaledWidth.toInt(), scaledHeight.toInt(), config)
         bitmap.density = toTransform.density
         bitmap.setHasAlpha(true)
@@ -78,9 +80,6 @@ class OffsetCropTransformation(
         return bitmap
     }
 
-    fun setCanvasBitmapDensity(toTransform: Bitmap, canvasBitmap: Bitmap) {
-        canvasBitmap.density = toTransform.density
-    }
 
     companion object {
         private val ID = "com.kshitijpatil.elementaryeditor.util.glide.OffsetCropTransformation"
@@ -89,16 +88,34 @@ class OffsetCropTransformation(
 
     override fun updateDiskCacheKey(messageDigest: MessageDigest) {
         messageDigest.update(ID_BYTES)
+        val cropData = ByteBuffer.allocate(244)
+            .putInt(cropBounds.offsetX)
+            .putInt(cropBounds.offsetY)
+            .putInt(cropBounds.height)
+            .putInt(cropBounds.width)
+            .putInt(viewWidth)
+            .putInt(viewHeight)
+            .array()
+        messageDigest.update(cropData)
     }
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
         if (other !is OffsetCropTransformation) return false
+
+        if (cropBounds != other.cropBounds) return false
+        if (viewWidth != other.viewWidth) return false
+        if (viewHeight != other.viewHeight) return false
+
         return true
     }
 
     override fun hashCode(): Int {
-        return ID.hashCode()
+        var result = cropBounds.hashCode()
+        result = 31 * result + viewWidth
+        result = 31 * result + viewHeight
+        return result
     }
+
 
 }

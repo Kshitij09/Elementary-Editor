@@ -13,7 +13,7 @@ import com.kshitijpatil.elementaryeditor.ui.edit.contract.InternalAction
 import com.kshitijpatil.elementaryeditor.util.takeWhileFinished
 import com.kshitijpatil.elementaryeditor.util.tapNullWithTimber
 import com.kshitijpatil.elementaryeditor.util.workRequest
-import com.kshitijpatil.elementaryeditor.worker.CropImageWorker
+import com.kshitijpatil.elementaryeditor.worker.EditImageWorker
 import com.kshitijpatil.elementaryeditor.worker.WorkerConstants
 import kotlinx.coroutines.channels.ProducerScope
 import kotlinx.coroutines.flow.*
@@ -33,7 +33,7 @@ class CropMiddleware(private val workManager: WorkManager) : EditMiddleware {
                         send(InternalAction.CropFailed)
                         return@channelFlow
                     }
-                    val request = workRequest<CropImageWorker>(workData)
+                    val request = workRequest<EditImageWorker>(workData)
                     workManager.enqueue(request)
                     launch { observeCropWorkerForCompletion(request.id) }
                 }

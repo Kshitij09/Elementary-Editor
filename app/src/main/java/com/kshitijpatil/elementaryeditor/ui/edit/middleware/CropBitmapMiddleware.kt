@@ -1,7 +1,7 @@
 package com.kshitijpatil.elementaryeditor.ui.edit.middleware
 
 import com.bumptech.glide.Glide
-import com.kshitijpatil.elementaryeditor.data.toCropPayload
+import com.kshitijpatil.elementaryeditor.data.EditPayload
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.EditAction
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.EditMiddleware
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.EditViewState
@@ -73,7 +73,7 @@ class CropBitmapMiddleware : EditMiddleware {
                         send(
                             InternalAction.PersistBitmap(
                                 cropped,
-                                cropOffsetBounds.toCropPayload()
+                                EditPayload.Crop(cropOffsetBounds, viewWidth, viewHeight)
                             )
                         )
                     }

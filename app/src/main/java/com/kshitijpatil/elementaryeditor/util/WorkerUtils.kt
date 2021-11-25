@@ -8,12 +8,12 @@ import kotlinx.coroutines.flow.transformWhile
  * Creates a [OneTimeWorkRequest] with the given inputData and a [tag] if set.
  */
 inline fun <reified T : ListenableWorker> workRequest(
-    inputData: Data,
+    inputData: Data? = null,
     expedited: Boolean = true,
     tag: String? = null
 ) =
     OneTimeWorkRequestBuilder<T>().apply {
-        setInputData(inputData)
+        inputData?.let { setInputData(it) }
         if (expedited)
             setExpedited(OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
         if (!tag.isNullOrEmpty()) {

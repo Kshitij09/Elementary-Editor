@@ -134,6 +134,10 @@ class EditActivity : AppCompatActivity() {
             editViewModel.submitAction(Redo)
             true
         }
+        R.id.menu_item_export -> {
+            editViewModel.submitAction(Export)
+            true
+        }
         else -> super.onOptionsItemSelected(item)
     }
 

@@ -1,9 +1,12 @@
 package com.kshitijpatil.elementaryeditor.util
 
+import com.squareup.moshi.JsonClass
+
 /**
  * Utility class to hold offset bounds of a
  * rectangular region
  */
+@JsonClass(generateAdapter = true)
 data class Bound(
     val offsetX: Int,
     val offsetY: Int,

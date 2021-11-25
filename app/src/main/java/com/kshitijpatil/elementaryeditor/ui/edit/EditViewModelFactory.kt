@@ -7,6 +7,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.savedstate.SavedStateRegistryOwner
 import com.kshitijpatil.elementaryeditor.data.EditOperation
+import com.kshitijpatil.elementaryeditor.di.MoshiModule
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.EditViewState
 import java.lang.ref.WeakReference
 
@@ -17,7 +18,7 @@ class EditViewModelFactory(
 ) : AbstractSavedStateViewModelFactory(owner, defaultArgs) {
     private val contextRef = WeakReference(context)
     private val editOperationValues = enumValues<EditOperation>()
-
+    private val editPayloadListJsonAdapter = MoshiModule.editPayloadListJsonAdapter
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel?> create(
         key: String,
@@ -30,7 +31,12 @@ class EditViewModelFactory(
             val editOperationIndex = handle.get<Int>("active-edit-operation") ?: 0
             val activeEditOperation = editOperationValues[editOperationIndex]
             val initialState = EditViewState(activeEditOperation)
-            return EditViewModel(handle, context, initialState) as T
+            return EditViewModel(
+                handle = handle,
+                context = context,
+                editPayloadListJsonAdapter = editPayloadListJsonAdapter,
+                initialState = initialState
+            ) as T
         }
         throw IllegalArgumentException("ViewModel not found")
     }

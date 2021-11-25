@@ -5,6 +5,7 @@
     <string name="label_rotate">Rotate</string>
     <string name="label_cancel_processing">Cancel Processing</string>
     <string name="notification_title_crop_image">Cropping Image</string>
+    <string name="notification_title_preparing_photo">Preparing Photo</string>
     <string name="notification_channel_id">edits</string>
     <string name="notification_channel_name">Edit Operations</string>
     <string name="label_undo">Undo</string>
@@ -15,4 +16,6 @@
     <string name="action_discard">Discard</string>
     <string name="action_cancel">Cancel</string>
     <string name="label_compare">Compare</string>
+    <string name="label_save">Save</string>
+    <string name="notification_title_saving_image">Saving Image</string>
 </resources>

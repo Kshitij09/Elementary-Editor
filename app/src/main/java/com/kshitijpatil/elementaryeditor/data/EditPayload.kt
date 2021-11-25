@@ -7,16 +7,11 @@ sealed class EditPayload(val type: EditOperation) {
 
     @JsonClass(generateAdapter = true)
     data class Crop(
-        val offsetX: Int,
-        val offsetY: Int,
-        val width: Int,
-        val height: Int
+        val cropBounds: Bound,
+        val viewWidth: Int,
+        val viewHeight: Int
     ) : EditPayload(EditOperation.CROP)
 
     @JsonClass(generateAdapter = true)
     data class Rotate(val degrees: Float) : EditPayload(EditOperation.ROTATE)
-}
-
-fun Bound.toCropPayload(): EditPayload.Crop {
-    return EditPayload.Crop(offsetX, offsetY, width, height)
 }

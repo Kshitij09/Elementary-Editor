@@ -7,6 +7,7 @@ import android.net.Uri
 import com.kshitijpatil.elementaryeditor.data.EditOperation
 import com.kshitijpatil.elementaryeditor.data.EditPayload
 import com.kshitijpatil.elementaryeditor.ui.common.ReduxViewModel
+import java.util.*
 
 
 sealed interface EditAction
@@ -14,7 +15,7 @@ data class Confirm(val context: Context) : EditAction
 object Cancel : EditAction
 object Undo : EditAction
 object Redo : EditAction
-object Save : EditAction
+object Export : EditAction
 object PeekFirst : EditAction
 object LoadLatest : EditAction
 data class SetCurrentImageUri(val imageUri: Uri, val context: Context) : EditAction
@@ -48,6 +49,9 @@ sealed class InternalAction : EditAction {
 
     object Cropping : InternalAction()
     object BitmapLoading : InternalAction()
+    object Exporting : InternalAction()
+    object ExportFailed : InternalAction()
+    data class EditWorkerScheduled(val requestId: UUID) : InternalAction()
     object PersistBitmapSkipped : InternalAction()
     data class CropSucceeded(val bitmap: Bitmap) : InternalAction()
     data class RotateSucceeded(val bitmap: Bitmap) : InternalAction()
@@ -94,6 +98,9 @@ sealed interface EditUiEffect
 sealed interface SuccessEffect
 sealed interface FailureEffect
 sealed interface ResetEffect
+data class EditImageWorkScheduled(val requestId: UUID) : EditUiEffect
+object ExportImageFailed : EditUiEffect, FailureEffect
+
 sealed class Crop : EditUiEffect {
     object Succeeded : Crop(), SuccessEffect
     object Failed : Crop(), FailureEffect

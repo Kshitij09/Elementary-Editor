@@ -2,6 +2,7 @@ package com.kshitijpatil.elementaryeditor
 
 import com.kshitijpatil.elementaryeditor.data.EditPayload
 import com.kshitijpatil.elementaryeditor.di.MoshiModule
+import com.kshitijpatil.elementaryeditor.util.Bound
 import org.junit.Assert.assertNotNull
 import org.junit.Test
 
@@ -19,7 +20,7 @@ class EditPayloadAdapterTest {
 
     @Test
     fun cropPayloadSerialization() {
-        val cropPayload = EditPayload.Crop(0, 0, 100, 100)
+        val cropPayload = EditPayload.Crop(Bound(0, 0, 100, 100), 300, 400)
         val cropPayloadSerialized = editPayloadJsonAdapter.toJson(listOf(cropPayload))
         assertNotNull(cropPayloadSerialized)
     }

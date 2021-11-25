@@ -5,17 +5,16 @@ import android.graphics.Bitmap
 import android.graphics.Rect
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
+import androidx.work.WorkManager
 import com.kshitijpatil.elementaryeditor.data.EditOperation
 import com.kshitijpatil.elementaryeditor.data.EditPayload
 import com.kshitijpatil.elementaryeditor.ui.common.LoggingMiddleware
 import com.kshitijpatil.elementaryeditor.ui.common.ReduxViewModel
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.*
-import com.kshitijpatil.elementaryeditor.ui.edit.middleware.BitmapChronicleMiddleware
-import com.kshitijpatil.elementaryeditor.ui.edit.middleware.CropBitmapMiddleware
-import com.kshitijpatil.elementaryeditor.ui.edit.middleware.LoadBitmapFromUriMiddleware
-import com.kshitijpatil.elementaryeditor.ui.edit.middleware.RotateBitmapMiddleware
+import com.kshitijpatil.elementaryeditor.ui.edit.middleware.*
 import com.kshitijpatil.elementaryeditor.util.chronicle.Chronicle
 import com.kshitijpatil.elementaryeditor.util.chronicle.createChronicle
+import com.squareup.moshi.JsonAdapter
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.channels.Channel.Factory.BUFFERED
 import kotlinx.coroutines.flow.Flow
@@ -29,18 +28,21 @@ import timber.log.Timber
 class EditViewModel(
     private val handle: SavedStateHandle,
     context: Context,
+    private val editPayloadListJsonAdapter: JsonAdapter<List<EditPayload>>,
     initialState: EditViewState
 ) : ReduxViewModel<EditViewState, EditAction>(initialState) {
     // TODO: Fetch this from BuildConfig
     private val maxUndoStackSize: Int = 10
-    private val bitmapChronicle: Chronicle<Pair<Bitmap, EditPayload?>> = createChronicle(
+    private val bitmapEditsChronicle: Chronicle<Pair<Bitmap, EditPayload?>> = createChronicle(
         maxSize = maxUndoStackSize,
         threadSafe = true
     )
+    private val workManager = WorkManager.getInstance(context)
     override val middlewares = listOf(
         CropBitmapMiddleware(),
         RotateBitmapMiddleware(),
-        BitmapChronicleMiddleware(bitmapChronicle),
+        BitmapChronicleMiddleware(bitmapEditsChronicle),
+        ExportMiddleware(bitmapEditsChronicle, editPayloadListJsonAdapter, workManager),
         LoadBitmapFromUriMiddleware(),
         LoggingMiddleware(TAG)
     )
@@ -124,9 +126,19 @@ class EditViewModel(
                 state.copy(backwardSteps = action.backwardSteps, forwardSteps = action.forwardSteps)
             }
             // actions intercepted by the middlewares should explicitly be listed here
+            is InternalAction.ExportFailed -> {
+                sendEffect(ExportImageFailed)
+                state
+            }
+            is InternalAction.EditWorkerScheduled -> {
+                sendEffect(EditImageWorkScheduled(action.requestId))
+                state
+            }
             is InternalAction.PersistBitmap -> state
             is InternalAction.MutatingAction.PerformCrop -> state
             is InternalAction.MutatingAction.Rotate -> state
+            Export -> state
+            is InternalAction.Exporting -> state
             InternalAction.PersistBitmapSkipped -> state
             Redo -> state
             PeekFirst -> state
