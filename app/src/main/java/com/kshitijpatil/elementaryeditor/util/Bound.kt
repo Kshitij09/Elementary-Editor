@@ -19,6 +19,14 @@ data class Bound(
         width.toFloat(),
         height.toFloat()
     )
+
+    fun scaleBy(scaleX: Float, scaleY: Float): Bound {
+        val scaledOffsetX = offsetX * scaleX
+        val scaledOffsetY = offsetY * scaleY
+        val scaledWidth = width * scaleX
+        val scaledHeight = height * scaleY
+        return BoundF(scaledOffsetX, scaledOffsetY, scaledWidth, scaledHeight).toBound()
+    }
 }
 
 /**

@@ -1,17 +1,19 @@
 package com.kshitijpatil.elementaryeditor.ui.edit.middleware
 
+import android.graphics.Bitmap
+import android.graphics.Rect
+import android.util.Size
 import com.bumptech.glide.Glide
-import com.kshitijpatil.elementaryeditor.data.EditPayload
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.EditAction
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.EditMiddleware
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.EditViewState
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.InternalAction
-import com.kshitijpatil.elementaryeditor.util.glide.OffsetCropTransformation
+import com.kshitijpatil.elementaryeditor.util.glide.OffsetCropTransformationV2
+import com.kshitijpatil.elementaryeditor.util.tapNullWithTimber
 import com.kshitijpatil.elementaryeditor.util.toOffsetBounds
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import timber.log.Timber
 import java.util.*
 
 
@@ -26,52 +28,31 @@ class CropBitmapMiddleware : EditMiddleware {
             .flatMapLatest { context ->
                 val currentState = state.value
                 channelFlow {
-                    val bitmap = currentState.currentBitmap
-                    if (bitmap == null) {
-                        Timber.e("$TAG: Current Bitmap is null, returning...")
-                        send(InternalAction.CropFailed)
-                        return@channelFlow
-                    }
-
-                    val imageBounds = currentState.cropState.imageBounds
-                    if (imageBounds == null) {
-                        Timber.e("$TAG: Image Bounds were not set, skipping...")
-                        send(InternalAction.CropFailed)
-                        return@channelFlow
-                    }
-                    val cropBounds = currentState.cropState.cropBounds
-                    if (cropBounds == null) {
-                        Timber.e("$TAG: Crop Bounds were not set, skipping...")
-                        send(InternalAction.CropFailed)
-                        return@channelFlow
-                    }
+                    val params = prepareParams(currentState) ?: return@channelFlow
+                    val offsetBounds = toOffsetBounds(params.viewBounds, params.cropBounds)
+                    val scaledBounds = offsetBounds.scaleBy(
+                        scaleX = params.imageSize.width / params.viewBounds.width().toFloat(),
+                        scaleY = params.imageSize.height / params.viewBounds.height().toFloat()
+                    )
                     send(InternalAction.Cropping)
-                    val viewWidth = imageBounds.width()
-                    val viewHeight = imageBounds.height()
-                    val cropOffsetBounds = toOffsetBounds(imageBounds, cropBounds)
                     val cropJob = launch(Dispatchers.Default) {
                         val glideTarget = Glide.with(context)
                             .asBitmap()
-                            .load(bitmap)
-                            .transform(
-                                OffsetCropTransformation(
-                                    cropBounds = cropOffsetBounds,
-                                    viewWidth = viewWidth,
-                                    viewHeight = viewHeight
-                                )
-                            ).submit()
+                            .load(params.bitmap)
+                            .transform(OffsetCropTransformationV2(scaledBounds))
+                            .submit()
 
                         val cropped = glideTarget.get()
                         // wait for current bitmap to get persisted before
                         // emitting a signal to modify the same
                         //state.first { it.bitmapPersisted }
                         send(InternalAction.CropSucceeded(cropped))
-                        send(
+                        /*send(
                             InternalAction.PersistBitmap(
                                 cropped,
                                 EditPayload.Crop(cropOffsetBounds, viewWidth, viewHeight)
                             )
-                        )
+                        )*/
                     }
                     cropJob.invokeOnCompletion {
                         it?.let {
@@ -82,7 +63,34 @@ class CropBitmapMiddleware : EditMiddleware {
             }
     }
 
-    companion object {
-        private const val TAG = "InMemoryCrop"
+    private fun prepareParams(viewState: EditViewState): Params? {
+        val bitmap = tapNullWithTimber(
+            viewState.currentBitmap,
+            nullErrorMessageFor("currentBitmap")
+        ) ?: return null
+        val cropBounds = tapNullWithTimber(
+            viewState.cropState.cropBounds,
+            nullErrorMessageFor("cropBounds")
+        ) ?: return null
+        val imageBounds = tapNullWithTimber(
+            viewState.cropState.imageBounds,
+            nullErrorMessageFor("imageBounds")
+        ) ?: return null
+        val imageSize = tapNullWithTimber(
+            viewState.imageSize,
+            nullErrorMessageFor("imageSize")
+        ) ?: return null
+        return Params(bitmap, cropBounds, imageBounds, imageSize)
     }
+
+    private fun nullErrorMessageFor(fieldName: String): () -> String {
+        return { "'$fieldName' was null, returning..." }
+    }
+
+    internal data class Params(
+        val bitmap: Bitmap,
+        val cropBounds: Rect,
+        val viewBounds: Rect,
+        val imageSize: Size,
+    )
 }
