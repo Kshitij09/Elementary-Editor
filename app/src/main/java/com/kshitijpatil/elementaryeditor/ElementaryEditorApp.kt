@@ -19,6 +19,7 @@ class ElementaryEditorApp : Application(), Configuration.Provider {
         val logLevel = if (BuildConfig.DEBUG) Log.DEBUG else Log.ERROR
         val delegatingWorkerFactory = DelegatingWorkerFactory().apply {
             addFactory(WorkerModule.provideEditImageWorkerFactory())
+            addFactory(WorkerModule.provideSaveImageToGalleryWorkerFactory())
         }
         return Configuration.Builder()
             .setMinimumLoggingLevel(logLevel)

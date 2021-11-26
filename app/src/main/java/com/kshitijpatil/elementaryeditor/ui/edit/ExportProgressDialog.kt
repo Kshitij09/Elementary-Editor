@@ -84,7 +84,8 @@ class ExportProgressDialog(
     private fun updateUiForSaveImageWorkState() {
         workManager.getWorkInfoByIdLiveData(saveWorkerId)
             .observe(viewLifecycleOwner) { workInfo ->
-                binding.ivStatus.isVisible = workInfo.state == WorkInfo.State.CANCELLED
+                binding.ivStatus.isVisible = workInfo.state == WorkInfo.State.SUCCEEDED
+                        || workInfo.state == WorkInfo.State.FAILED
                 when (workInfo.state) {
                     WorkInfo.State.ENQUEUED,
                     WorkInfo.State.RUNNING -> {
