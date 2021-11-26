@@ -6,6 +6,12 @@
     <string name="label_cancel_processing">Cancel Processing</string>
     <string name="notification_title_crop_image">Cropping Image</string>
     <string name="notification_title_preparing_photo">Preparing Photo</string>
+    <string name="progress_processing_image">Processing Image…</string>
+    <string name="progress_saving">Saving…</string>
+    <string name="info_saved">Saved!</string>
+    <string name="info_cancelled">Cancelled</string>
+    <string name="error_editing_failed">Failed processing your image</string>
+    <string name="error_exporting">Failed Exporting your image</string>
     <string name="notification_channel_id">edits</string>
     <string name="notification_channel_name">Edit Operations</string>
     <string name="label_undo">Undo</string>

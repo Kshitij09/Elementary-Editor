@@ -65,11 +65,12 @@ class ExportMiddleware(
                         WorkerConstants.KEY_VIEW_HEIGHT to viewHeight,
                         WorkerConstants.KEY_EDIT_PAYLOAD to editPayloadJson
                     )
-                    val request = workRequest<EditImageWorker>(inputData)
-                    workManager.beginWith(request)
-                        .then(workRequest<SaveImageToGalleryWorker>())
+                    val editRequest = workRequest<EditImageWorker>(inputData)
+                    val saveRequest = workRequest<SaveImageToGalleryWorker>()
+                    workManager.beginWith(editRequest)
+                        .then(saveRequest)
                         .enqueue()
-                    send(InternalAction.EditWorkerScheduled(request.id))
+                    send(InternalAction.ExportWorkScheduled(editRequest.id, saveRequest.id))
                 }
             }
     }

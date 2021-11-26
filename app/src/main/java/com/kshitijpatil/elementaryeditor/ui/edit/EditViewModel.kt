@@ -130,8 +130,8 @@ class EditViewModel(
                 sendEffect(ExportImageFailed)
                 state
             }
-            is InternalAction.EditWorkerScheduled -> {
-                sendEffect(EditImageWorkScheduled(action.requestId))
+            is InternalAction.ExportWorkScheduled -> {
+                sendEffect(EditImageWorkScheduled(action.editRequestId, action.saveRequestId))
                 state
             }
             is InternalAction.PersistBitmap -> state

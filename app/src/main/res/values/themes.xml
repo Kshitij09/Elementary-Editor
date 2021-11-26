@@ -30,5 +30,10 @@
         <item name="textAppearanceCaption">@style/TextAppearance.MyTheme.Caption</item>
         <item name="textAppearanceOverline">@style/TextAppearance.MyTheme.Overline</item>
     </style>
+
     <style name="ThemeOverlay.ElementaryEditor.BottomSheetDialog" parent="ThemeOverlay.MaterialComponents.Light" />
+
+    <style name="ThemeOverlay.App.Button.Alert" parent="">
+        <item name="colorPrimary">@color/theme_red</item>
+    </style>
 </resources>

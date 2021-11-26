@@ -177,8 +177,14 @@ class EditActivity : AppCompatActivity() {
                         }
                     }
                     is FailureEffect -> showSnackbar(R.string.error_operation_failed)
+                    is EditImageWorkScheduled -> showProgressDialog(effect)
                 }
             }
+    }
+
+    private fun showProgressDialog(effect: EditImageWorkScheduled) {
+        val exportProgressDialog = ExportProgressDialog(effect.editRequestId, effect.saveRequestId)
+        exportProgressDialog.show(supportFragmentManager, exportProgressDialog.tag)
     }
 
     private fun handleIntentUri() {
