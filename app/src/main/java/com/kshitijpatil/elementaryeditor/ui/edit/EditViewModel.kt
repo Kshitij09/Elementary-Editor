@@ -120,6 +120,7 @@ class EditViewModel(
                 else
                     newState.copy(currentBitmap = action.bitmap)
             }
+            is InternalAction.ImageSizeReceived -> state.copy(imageSize = action.size)
             InternalAction.BitmapLoading -> state.copy(bitmapLoading = true)
 
             is InternalAction.StepsCountUpdated -> {

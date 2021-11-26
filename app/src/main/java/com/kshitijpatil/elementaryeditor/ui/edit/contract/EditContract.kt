@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Rect
 import android.net.Uri
+import android.util.Size
 import com.kshitijpatil.elementaryeditor.data.EditOperation
 import com.kshitijpatil.elementaryeditor.data.EditPayload
 import com.kshitijpatil.elementaryeditor.ui.common.ReduxViewModel
@@ -56,6 +57,7 @@ sealed class InternalAction : EditAction {
     data class CropSucceeded(val bitmap: Bitmap) : InternalAction()
     data class RotateSucceeded(val bitmap: Bitmap) : InternalAction()
     data class BitmapLoaded(val bitmap: Bitmap?) : InternalAction()
+    data class ImageSizeReceived(val size: Size) : InternalAction()
     data class StepsCountUpdated(val forwardSteps: Int, val backwardSteps: Int) : InternalAction()
     object CropFailed : InternalAction()
     object RotateFailed : InternalAction()
@@ -84,6 +86,7 @@ data class EditViewState(
     val activeEditOperation: EditOperation,
     val currentImageUri: Uri? = null,
     val currentBitmap: Bitmap? = null,
+    val imageSize: Size? = null,
     val backwardSteps: Int = 0,
     val forwardSteps: Int = 0,
     val bitmapLoading: Boolean = false,

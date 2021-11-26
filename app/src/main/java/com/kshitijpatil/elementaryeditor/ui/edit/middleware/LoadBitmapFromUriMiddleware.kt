@@ -1,6 +1,7 @@
 package com.kshitijpatil.elementaryeditor.ui.edit.middleware
 
 import android.graphics.Bitmap
+import android.util.Size
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.FutureTarget
 import com.kshitijpatil.elementaryeditor.ui.common.ReduxViewModel
@@ -27,6 +28,7 @@ class LoadBitmapFromUriMiddleware(
                     withContext(Dispatchers.Default) {
                         val bitmap = glideTarget.get()
                         send(InternalAction.BitmapLoaded(bitmap))
+                        send(InternalAction.ImageSizeReceived(Size(bitmap.width, bitmap.height)))
                         send(InternalAction.PersistBitmap(bitmap))
                     }
                 }
