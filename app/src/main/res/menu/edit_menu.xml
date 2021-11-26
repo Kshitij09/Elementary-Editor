@@ -6,24 +6,24 @@
         android:icon="@drawable/ic_undo"
         android:orderInCategory="0"
         android:title="@string/label_undo"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="always" />
 
     <item
         android:id="@+id/menu_item_redo"
         android:icon="@drawable/ic_redo"
         android:title="@string/label_redo"
-        android:orderInCategory="3"
-        app:showAsAction="ifRoom" />
+        android:orderInCategory="1"
+        app:showAsAction="always" />
     <item
         android:id="@+id/menu_item_compare"
         android:icon="@drawable/ic_compare"
-        android:orderInCategory="1"
+        android:orderInCategory="2"
         android:title="@string/label_compare"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="always" />
     <item
         android:id="@+id/menu_item_export"
         android:icon="@drawable/ic_save"
         android:orderInCategory="3"
         android:title="@string/label_save"
-        app:showAsAction="ifRoom" />
+        app:showAsAction="always" />
 </menu>
