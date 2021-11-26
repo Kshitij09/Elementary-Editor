@@ -13,7 +13,8 @@ object WorkerModule {
         workerParams: WorkerParameters
     ): EditImageWorker {
         val jsonAdapter = MoshiModule.editPayloadListJsonAdapter
-        return EditImageWorker(appContext, workerParams, jsonAdapter)
+        val combineOperationsStrategy = DomainModule.provideCombineOperationsStrategy()
+        return EditImageWorker(appContext, workerParams, jsonAdapter, combineOperationsStrategy)
     }
 
     private inline fun <reified T : ListenableWorker?> workerFactoryOf(

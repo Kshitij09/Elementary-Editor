@@ -52,7 +52,8 @@ sealed class InternalAction : EditAction {
     object BitmapLoading : InternalAction()
     object Exporting : InternalAction()
     object ExportFailed : InternalAction()
-    data class EditWorkerScheduled(val requestId: UUID) : InternalAction()
+    data class ExportWorkersScheduled(val editRequestId: UUID, val saveRequestId: UUID) :
+        InternalAction()
     object PersistBitmapSkipped : InternalAction()
     data class CropSucceeded(val bitmap: Bitmap) : InternalAction()
     data class RotateSucceeded(val bitmap: Bitmap) : InternalAction()

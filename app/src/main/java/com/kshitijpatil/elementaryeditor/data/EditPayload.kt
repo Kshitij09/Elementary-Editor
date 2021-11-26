@@ -6,11 +6,7 @@ import com.squareup.moshi.JsonClass
 sealed class EditPayload(val type: EditOperation) {
 
     @JsonClass(generateAdapter = true)
-    data class Crop(
-        val cropBounds: Bound,
-        val viewWidth: Int,
-        val viewHeight: Int
-    ) : EditPayload(EditOperation.CROP)
+    data class Crop(val cropBoundScaled: Bound) : EditPayload(EditOperation.CROP)
 
     @JsonClass(generateAdapter = true)
     data class Rotate(val degrees: Float) : EditPayload(EditOperation.ROTATE)

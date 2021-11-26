@@ -12,12 +12,15 @@ import com.bumptech.glide.Glide
 import com.bumptech.glide.load.resource.bitmap.BitmapTransformation
 import com.kshitijpatil.elementaryeditor.R
 import com.kshitijpatil.elementaryeditor.data.EditPayload
+import com.kshitijpatil.elementaryeditor.domain.CombinePayloadStrategy
 import com.kshitijpatil.elementaryeditor.util.createEditNotification
-import com.kshitijpatil.elementaryeditor.util.glide.OffsetCropTransformation
+import com.kshitijpatil.elementaryeditor.util.glide.OffsetCropTransformationV2
 import com.kshitijpatil.elementaryeditor.util.glide.RotateTransformation
+import com.kshitijpatil.elementaryeditor.util.tapNullWithTimber
 import com.squareup.moshi.JsonAdapter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import timber.log.Timber
 import java.io.File
 import java.io.FileOutputStream
 import java.util.*
@@ -25,13 +28,12 @@ import java.util.*
 class EditImageWorker(
     appContext: Context,
     workerParameters: WorkerParameters,
-    private val editPayloadListJsonAdapter: JsonAdapter<List<EditPayload>>
+    private val editPayloadListJsonAdapter: JsonAdapter<List<EditPayload>>,
+    private val combinePayloadStrategy: CombinePayloadStrategy
 ) : CoroutineWorker(appContext, workerParameters) {
 
     data class Params(
         val resourceUri: Uri,
-        val viewWidth: Int,
-        val viewHeight: Int,
         val editPayloadJson: String
     )
 
@@ -42,7 +44,11 @@ class EditImageWorker(
                 editPayloadListJsonAdapter.fromJson(inputData.editPayloadJson)
             }.getOrNull()
         } ?: return Result.failure()
-        val glideTransforms = editPayloads
+        Timber.v("[Before Combine] EditPayloads: $editPayloads")
+        //val combinedPayloads = combinePayloadStrategy.combine(editPayloads)
+        val combinedPayloads = editPayloads
+        Timber.v("[After Combine] EditPayloads: $combinedPayloads")
+        val glideTransforms = combinedPayloads
             .map(::payloadToGlideTransform)
             .toTypedArray()
         val outputUri = withContext(Dispatchers.Default) {
@@ -60,11 +66,7 @@ class EditImageWorker(
     private fun payloadToGlideTransform(editPayload: EditPayload): BitmapTransformation {
         return when (editPayload) {
             is EditPayload.Crop -> {
-                OffsetCropTransformation(
-                    editPayload.cropBounds,
-                    editPayload.viewWidth,
-                    editPayload.viewHeight
-                )
+                OffsetCropTransformationV2(editPayload.cropBoundScaled)
             }
             is EditPayload.Rotate -> {
                 RotateTransformation(editPayload.degrees)
@@ -73,12 +75,15 @@ class EditImageWorker(
     }
 
     private fun parseInputData(): Params? {
-        val resourceUri = inputData.getString(WorkerConstants.KEY_IMAGE_URI)?.toUri() ?: return null
-        val viewWidth = inputData.getInt(WorkerConstants.KEY_VIEW_WIDTH, 0)
-        val viewHeight = inputData.getInt(WorkerConstants.KEY_VIEW_HEIGHT, 0)
-        if (viewWidth == 0 || viewHeight == 0) return null
-        val editPayloadJson = inputData.getString(WorkerConstants.KEY_EDIT_PAYLOAD) ?: return null
-        return Params(resourceUri, viewWidth, viewHeight, editPayloadJson)
+        val resourceUri =
+            tapNullWithTimber(inputData.getString(WorkerConstants.KEY_IMAGE_URI)?.toUri()) {
+                "failed to retrieve value with 'KEY_IMAGE_URI'"
+            } ?: return null
+        val editPayloadJson =
+            tapNullWithTimber(inputData.getString(WorkerConstants.KEY_EDIT_PAYLOAD)) {
+                "failed to retrieve value with 'KEY_EDIT_PAYLOAD'"
+            } ?: return null
+        return Params(resourceUri, editPayloadJson)
     }
 
     /**

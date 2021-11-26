@@ -130,7 +130,7 @@ class OffsetCropTransformationV2(
     ): Bitmap {
         val (offsetX, offsetY, width, height) = cropBounds
         val config = toTransform.config ?: Bitmap.Config.ARGB_8888
-        val bitmap = pool.get(cropBounds.width, cropBounds.height, config)
+        val bitmap = pool.get(width, height, config)
         bitmap.density = toTransform.density
         bitmap.setHasAlpha(true)
         val canvas = Canvas(bitmap).apply {
@@ -150,7 +150,7 @@ class OffsetCropTransformationV2(
 
 
     companion object {
-        private val ID = "com.kshitijpatil.elementaryeditor.util.glide.OffsetCropTransformation"
+        private val ID = "com.kshitijpatil.elementaryeditor.util.glide.OffsetCropTransformationV2"
         private val ID_BYTES = ID.toByteArray(Charset.forName("UTF-8"))
     }
 
@@ -175,6 +175,6 @@ class OffsetCropTransformationV2(
     }
 
     override fun hashCode(): Int {
-        return 31 * cropBounds.hashCode()
+        return cropBounds.hashCode()
     }
 }

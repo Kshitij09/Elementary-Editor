@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.graphics.Rect
 import android.util.Size
 import com.bumptech.glide.Glide
+import com.kshitijpatil.elementaryeditor.data.EditPayload
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.EditAction
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.EditMiddleware
 import com.kshitijpatil.elementaryeditor.ui.edit.contract.EditViewState
@@ -13,7 +14,7 @@ import com.kshitijpatil.elementaryeditor.util.tapNullWithTimber
 import com.kshitijpatil.elementaryeditor.util.toOffsetBounds
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.util.*
 
 
@@ -28,36 +29,36 @@ class CropBitmapMiddleware : EditMiddleware {
             .flatMapLatest { context ->
                 val currentState = state.value
                 channelFlow {
-                    val params = prepareParams(currentState) ?: return@channelFlow
+                    val params = prepareParams(currentState)
+                    if (params == null) {
+                        send(InternalAction.CropFailed)
+                        return@channelFlow
+                    }
                     val offsetBounds = toOffsetBounds(params.viewBounds, params.cropBounds)
-                    val scaledBounds = offsetBounds.scaleBy(
+                    val offsetBoundsScaledToImageSize = offsetBounds.scaleBy(
                         scaleX = params.imageSize.width / params.viewBounds.width().toFloat(),
                         scaleY = params.imageSize.height / params.viewBounds.height().toFloat()
                     )
+                    val offsetBoundsScaledToViewSize = offsetBounds.scaleBy(
+                        scaleX = params.bitmap.width / params.viewBounds.width().toFloat(),
+                        scaleY = params.bitmap.height / params.viewBounds.height().toFloat(),
+                    )
                     send(InternalAction.Cropping)
-                    val cropJob = launch(Dispatchers.Default) {
+                    withContext(Dispatchers.Default) {
                         val glideTarget = Glide.with(context)
                             .asBitmap()
                             .load(params.bitmap)
-                            .transform(OffsetCropTransformationV2(scaledBounds))
+                            .transform(OffsetCropTransformationV2(offsetBoundsScaledToViewSize))
                             .submit()
 
                         val cropped = glideTarget.get()
-                        // wait for current bitmap to get persisted before
-                        // emitting a signal to modify the same
-                        //state.first { it.bitmapPersisted }
                         send(InternalAction.CropSucceeded(cropped))
-                        /*send(
+                        send(
                             InternalAction.PersistBitmap(
                                 cropped,
-                                EditPayload.Crop(cropOffsetBounds, viewWidth, viewHeight)
+                                EditPayload.Crop(offsetBoundsScaledToImageSize)
                             )
-                        )*/
-                    }
-                    cropJob.invokeOnCompletion {
-                        it?.let {
-                            trySend(InternalAction.CropFailed)
-                        }
+                        )
                     }
                 }
             }
