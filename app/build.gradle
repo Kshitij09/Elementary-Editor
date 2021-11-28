@@ -5,6 +5,8 @@ plugins {
     id 'androidx.navigation.safeargs.kotlin'
 }
 
+def useReleaseKeystore = rootProject.file("signing/app-release.jks").exists()
+
 android {
     compileSdk buildConfig.compileSdk
 
@@ -18,12 +20,45 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        debug {
+            storeFile rootProject.file("signing/app-debug.jks")
+            storePassword "kotlin"
+            keyAlias "elementary-editor-debug"
+            keyPassword "kotlin"
+        }
+
+        release {
+            if (useReleaseKeystore) {
+                storeFile rootProject.file("signing/app-release.jks")
+                storePassword propOrDef('ELM_EDITOR_RELEASE_PWD', "")
+                keyAlias "elementary-editor-release"
+                keyPassword propOrDef('ELM_EDITOR_RELEASE_PWD', "")
+            }
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig signingConfigs.debug
+            versionNameSuffix "-dev"
+            applicationIdSuffix ".debug"
+        }
+
         release {
             minifyEnabled false
+            if (useReleaseKeystore) {
+                signingConfig signingConfigs.release
+            } else {
+                // Otherwise just use the debug keystore (this is mainly for PR CI builds)
+                signingConfig signingConfigs.debug
+            }
+            shrinkResources true
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
