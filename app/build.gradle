@@ -88,7 +88,6 @@ dependencies {
     implementation libs.androidx.coreKtx
     implementation libs.androidx.appcompat
     implementation libs.androidx.recyclerview
-    implementation libs.androidx.swiperefreshlayout
     implementation libs.androidx.constraintlayout
     implementation libs.androidx.cardview
     implementation libs.android.material
@@ -101,7 +100,6 @@ dependencies {
 
     // third-party
     implementation libs.timber
-    implementation libs.phonemoji
     implementation libs.glide
     implementation libs.moshi.moshi
     implementation libs.moshi.moshiAdapters
