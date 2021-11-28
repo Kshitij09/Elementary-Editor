@@ -13,7 +13,7 @@
 
     <fragment
         android:id="@id/fragment_rotate"
-        android:name="com.kshitijpatil.elementaryeditor.RotateImageFragment"
+        android:name="com.kshitijpatil.elementaryeditor.ui.edit.rotate.RotateImageFragment"
         android:label="RotateImageFragment"
         tools:layout="@layout/fragment_rotate_image" />
 </navigation>
